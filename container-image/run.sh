@@ -27,6 +27,7 @@ then
     then
       echo '-------- LOOP '
       while [ 1  ] ; 
+        do
         export TEST_PLAN="${TEST_NAME:-example}"
         jmeter \
         -n \
