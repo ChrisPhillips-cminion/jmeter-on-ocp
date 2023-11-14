@@ -38,7 +38,7 @@ then
         -o "$JMETER_BASE/results/${TEST_PLAN}-report"
         exec tail -f jmeter.log
         echo "END Running Jmeter on `date`"
-        echo sleeping for $SLEEP
+        echo sleeping for $SLEEP $(date)
         sleep $SLEEP
       done	
 
