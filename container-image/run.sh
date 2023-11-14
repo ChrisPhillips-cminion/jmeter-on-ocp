@@ -32,11 +32,7 @@ then
         jmeter \
         -n \
         -q "$JMETER_BASE/tests/config.properties" \
-        -t "$JMETER_BASE/tests/${TEST_PLAN}.jmx" \
-        -l "$JMETER_BASE/results/${TEST_PLAN}.jtl" \
-        -e \
-        -o "$JMETER_BASE/results/${TEST_PLAN}-report"
-        exec tail -f jmeter.log
+        -t "$JMETER_BASE/tests/${TEST_PLAN}.jmx" 
         echo "END Running Jmeter on `date`"
         echo sleeping for $SLEEP $(date)
         sleep $SLEEP
