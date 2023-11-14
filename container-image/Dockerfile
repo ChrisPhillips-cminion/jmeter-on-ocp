@@ -1,7 +1,7 @@
 # Inspired from https://github.com/fgiloux/auto-perf-test/blob/master/jmeter/container/Dockerfile
 FROM registry.access.redhat.com/ubi8/openjdk-11
 MAINTAINER Álvaro López<alopezme@redhat.com>
-ENV JMETER_VERSION "5.5"
+ENV JMETER_VERSION "5.6.2"
 
 LABEL jmeter.version=${JMETER_VERSION}
 
