@@ -23,21 +23,40 @@ echo "jmeter args=$@"
 # Ejecute the JMeter command.
 if [ $RUN_JMETER != false ]
 then
-    echo "START Running Jmeter on `date`"
-    # -n(--nongui),-D(--systemproperty),-t(--testfile),-l(--logfile)
-    # -p(--propfile),-e(--reportatendofloadtests),-o(--reportoutputfolder)
-    export TEST_PLAN="${TEST_NAME:-example}"
-    jmeter \
-    -n \
-    -q "$JMETER_BASE/tests/config.properties" \
-    -t "$JMETER_BASE/tests/${TEST_PLAN}.jmx" \
-    -l "$JMETER_BASE/results/${TEST_PLAN}.jtl" \
-    -e \
-    -o "$JMETER_BASE/results/${TEST_PLAN}-report"
-    exec tail -f jmeter.log
-    echo "END Running Jmeter on `date`"
-    echo "Zipping report"
-    zip -r $JMETER_BASE/results/${TEST_PLAN}.zip $JMETER_BASE/results/${TEST_PLAN}-report
+    if [ $LOOP != false ]
+    then
+      echo '-------- LOOP '
+      while [ 1  ] ; 
+        export TEST_PLAN="${TEST_NAME:-example}"
+        jmeter \
+        -n \
+        -q "$JMETER_BASE/tests/config.properties" \
+        -t "$JMETER_BASE/tests/${TEST_PLAN}.jmx" \
+        -l "$JMETER_BASE/results/${TEST_PLAN}.jtl" \
+        -e \
+        -o "$JMETER_BASE/results/${TEST_PLAN}-report"
+        exec tail -f jmeter.log
+        echo "END Running Jmeter on `date`"
+        sleep 1800
+      done	
+
+    else 
+      echo "START Running Jmeter on `date`"
+      # -n(--nongui),-D(--systemproperty),-t(--testfile),-l(--logfile)
+      # -p(--propfile),-e(--reportatendofloadtests),-o(--reportoutputfolder)
+      export TEST_PLAN="${TEST_NAME:-example}"
+      jmeter \
+      -n \
+      -q "$JMETER_BASE/tests/config.properties" \
+      -t "$JMETER_BASE/tests/${TEST_PLAN}.jmx" \
+      -l "$JMETER_BASE/results/${TEST_PLAN}.jtl" \
+      -e \
+      -o "$JMETER_BASE/results/${TEST_PLAN}-report"
+      exec tail -f jmeter.log
+      echo "END Running Jmeter on `date`"
+      echo "Zipping report"
+      zip -r $JMETER_BASE/results/${TEST_PLAN}.zip $JMETER_BASE/results/${TEST_PLAN}-report
+    fi
 else
     echo "Skipping the execution of jmeter, run it manually..."
 fi
