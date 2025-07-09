@@ -26,7 +26,9 @@ RUN rm -rf apache-jmeter-${JMETER_VERSION}.zip
 #     && rm -rf $JMETER_BASE/apache-jmeter-${JMETER_VERSION}.tgz
 
 ############# ARE PLUGINS NEEDED?
-RUN mv jmeter-plugins-casutg-3.1.1.jar ./apache-jmeter-${JMETER_VERSION}/lib/
+RUN pwd
+
+RUN mv ~/jmeter-plugins-casutg-3.1.1.jar ./apache-jmeter-${JMETER_VERSION}/lib/
 
 # Set working directory
 WORKDIR $JMETER_BASE
