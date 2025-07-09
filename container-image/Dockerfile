@@ -1,7 +1,7 @@
 # Inspired from https://github.com/fgiloux/auto-perf-test/blob/master/jmeter/container/Dockerfile
 FROM registry.access.redhat.com/ubi8/openjdk-11
 MAINTAINER Álvaro López<alopezme@redhat.com>
-ENV JMETER_VERSION "5.6.2"
+ENV JMETER_VERSION "5.5"
 
 LABEL jmeter.version=${JMETER_VERSION}
 
@@ -16,6 +16,7 @@ RUN mkdir -p $JMETER_BASE/{tests,results}
 
 # Option 1: Download latest jmeter binaries from the Apache archive:
 RUN curl -SL https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.zip -o apache-jmeter-${JMETER_VERSION}.zip
+RUN curl -SL https://repo1.maven.org/maven2/kg/apc/jmeter-plugins-casutg/3.1.1/jmeter-plugins-casutg-3.1.1.jar -o jmeter-plugins-casutg-3.1.1.jar
 RUN cd $JMETER_BASE ; unzip ~/apache-jmeter-${JMETER_VERSION}.zip
 RUN rm -rf apache-jmeter-${JMETER_VERSION}.zip
 
@@ -25,7 +26,7 @@ RUN rm -rf apache-jmeter-${JMETER_VERSION}.zip
 #     && rm -rf $JMETER_BASE/apache-jmeter-${JMETER_VERSION}.tgz
 
 ############# ARE PLUGINS NEEDED?
-# COPY binaries/JMeterPlugins-ExtrasLibs-1.4.0.zip $JMETER_BASE/apache-jmeter-${JMETER_VERSION}/
+RUN mv jmeter-plugins-casutg-3.1.1.jar ./apache-jmeter-${JMETER_VERSION}/lib/
 
 # Set working directory
 WORKDIR $JMETER_BASE
