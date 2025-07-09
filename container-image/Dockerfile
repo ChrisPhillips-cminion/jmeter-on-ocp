@@ -29,7 +29,6 @@ RUN pwd
 RUN mkdir -p $JMETER_BASE/lib/ext/
 RUN curl -SL https://repo1.maven.org/maven2/kg/apc/jmeter-plugins-casutg/3.1.1/jmeter-plugins-casutg-3.1.1.jar -o $JMETER_BASE/lib/ext/jmeter-plugins-casutg-3.1.1.jar
 
-RUN mv ~/jmeter-plugins-casutg-3.1.1.jar ./apache-jmeter-${JMETER_VERSION}/lib/
 
 # Set working directory
 WORKDIR $JMETER_BASE
