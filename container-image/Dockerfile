@@ -16,7 +16,6 @@ RUN mkdir -p $JMETER_BASE/{tests,results}
 
 # Option 1: Download latest jmeter binaries from the Apache archive:
 RUN curl -SL https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.zip -o apache-jmeter-${JMETER_VERSION}.zip
-RUN curl -SL https://repo1.maven.org/maven2/kg/apc/jmeter-plugins-casutg/3.1.1/jmeter-plugins-casutg-3.1.1.jar -o jmeter-plugins-casutg-3.1.1.jar
 RUN cd $JMETER_BASE ; unzip ~/apache-jmeter-${JMETER_VERSION}.zip
 RUN rm -rf apache-jmeter-${JMETER_VERSION}.zip
 
@@ -27,6 +26,7 @@ RUN rm -rf apache-jmeter-${JMETER_VERSION}.zip
 
 ############# ARE PLUGINS NEEDED?
 RUN pwd
+RUN curl -SL https://repo1.maven.org/maven2/kg/apc/jmeter-plugins-casutg/3.1.1/jmeter-plugins-casutg-3.1.1.jar -o $JMETER_BASE/lib/ext/jmeter-plugins-casutg-3.1.1.jar
 
 RUN mv ~/jmeter-plugins-casutg-3.1.1.jar ./apache-jmeter-${JMETER_VERSION}/lib/
 
