@@ -29,7 +29,7 @@ RUN pwd
 RUN mkdir -p $JMETER_BASE/apache-jmeter-5.5/lib/ext/
 RUN curl -SL https://repo1.maven.org/maven2/kg/apc/jmeter-plugins-casutg/3.1.1/jmeter-plugins-casutg-3.1.1.jar -o $JMETER_BASE/apache-jmeter-5.5/lib/ext/jmeter-plugins-casutg-3.1.1.jar
 #RUN sed -i s/info/debug/ $JMETER_BASE/apache-jmeter-5.5/bin/log4j2.xml
-#RUN echo javax.net.debug=ssl:handshake:verbose >> $JMETER_BASE/apache-jmeter-5.5/bin/system.properties
+RUN echo javax.net.debug=ssl:handshake:verbose >> $JMETER_BASE/apache-jmeter-5.5/bin/system.properties
 # Set working directory
 WORKDIR $JMETER_BASE
 
