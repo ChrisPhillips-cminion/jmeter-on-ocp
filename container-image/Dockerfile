@@ -1,6 +1,5 @@
 # Inspired from https://github.com/fgiloux/auto-perf-test/blob/master/jmeter/container/Dockerfile
 FROM registry.access.redhat.com/ubi8/openjdk-11
-#FROM icr.io/appcafe/ibm-semeru-runtimes:certified-11-jdk-ubi
 MAINTAINER Álvaro López<alopezme@redhat.com>
 ENV JMETER_VERSION "5.5"
 
