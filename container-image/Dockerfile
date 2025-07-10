@@ -1,5 +1,6 @@
 # Inspired from https://github.com/fgiloux/auto-perf-test/blob/master/jmeter/container/Dockerfile
-FROM registry.access.redhat.com/ubi8/openjdk-11
+#FROM registry.access.redhat.com/ubi8/openjdk-11
+FROM icr.io/appcafe/ibm-semeru-runtimes:certified-11-jdk-ubi
 MAINTAINER Álvaro López<alopezme@redhat.com>
 ENV JMETER_VERSION "5.5"
 
@@ -28,7 +29,7 @@ RUN rm -rf apache-jmeter-${JMETER_VERSION}.zip
 RUN pwd
 RUN mkdir -p $JMETER_BASE/apache-jmeter-5.5/lib/ext/
 RUN curl -SL https://repo1.maven.org/maven2/kg/apc/jmeter-plugins-casutg/3.1.1/jmeter-plugins-casutg-3.1.1.jar -o $JMETER_BASE/apache-jmeter-5.5/lib/ext/jmeter-plugins-casutg-3.1.1.jar
-RUN sed -i s/info/debug/ $JMETER_BASE/apache-jmeter-5.5/bin/log4j2.xml
+#RUN sed -i s/info/debug/ $JMETER_BASE/apache-jmeter-5.5/bin/log4j2.xml
 #RUN echo javax.net.debug=ssl:handshake:verbose >> $JMETER_BASE/apache-jmeter-5.5/bin/system.properties
 # Set working directory
 WORKDIR $JMETER_BASE
