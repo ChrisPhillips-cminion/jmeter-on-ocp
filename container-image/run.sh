@@ -60,7 +60,7 @@ else
 fi
 
 # Wait to download results from the test
-while true;
-do
-    sleep 30;
-done;
+#while true;
+#do
+#    sleep 30;
+#done;
