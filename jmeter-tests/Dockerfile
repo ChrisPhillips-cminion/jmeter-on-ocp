@@ -1,4 +1,4 @@
-FROM openjdk:11-jre-slim
+FROM registry.access.redhat.com/ubi8/openjdk-11@sha256:ce5c0becf829aca80734b4caf3ab6b76cb00f7d78f4e39fb136636a764dea7f6
 
 # JMeter version
 ENV JMETER_VERSION=5.6.3
