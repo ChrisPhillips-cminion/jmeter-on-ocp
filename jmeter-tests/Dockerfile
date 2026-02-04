@@ -6,11 +6,8 @@ ENV JMETER_HOME=/opt/apache-jmeter
 ENV PATH=$JMETER_HOME/bin:$PATH
 
 # Install dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    wget \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+RUN microdnf install -y wget tar gzip && \
+    microdnf clean all
 
 # Download and install JMeter
 RUN wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_VERSION}.tgz && \
