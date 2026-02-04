@@ -27,7 +27,8 @@ echo "Current OpenShift project: $CURRENT_PROJECT"
 echo ""
 
 # Prompt for GitHub repository URL
-GITHUB_URL=https://github.ibm.com/Chris-Phillips/perftest
+GITHUB_URL=https://github.com/ChrisPhillips-cminion/jmeter-on-ocp
+
 
 
 # Prompt for branch (default: main)
@@ -36,7 +37,7 @@ BRANCH=${BRANCH:-main}
 
 # Prompt for context directory (default: jmeter-tests)
 
-CONTEXT_DIR=.
+CONTEXT_DIR=jmeter-tests
 
 # Prompt for target service name
 TARGET_SERVICE=${TARGET_SERVICE:-rest-api-app}
