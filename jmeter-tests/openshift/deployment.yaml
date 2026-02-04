@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jmeter-tests
+  labels:
+    app: jmeter-tests
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jmeter-tests
+  template:
+    metadata:
+      labels:
+        app: jmeter-tests
+    spec:
+      containers:
+      - name: jmeter-tests
+        image: image-registry.openshift-image-registry.svc:5000/YOUR_NAMESPACE/jmeter-tests:latest
+        command: ["/bin/bash"]
+        args:
+          - "-c"
+          - |
+            echo "Starting JMeter load tests..."
+            ./run-all-tests.sh
+            echo "Tests completed. Pod will remain running for result retrieval."
+            echo "Results are available in /jmeter/results"
+            echo "To copy results: oc rsync <pod-name>:/jmeter/results ./local-results"
+            # Keep container running after tests complete
+            tail -f /dev/null
+        env:
+        - name: HOST
+          value: "rest-api-app.YOUR_NAMESPACE.svc.cluster.local"
+        - name: PORT
+          value: "8080"
+        - name: PROTOCOL
+          value: "http"
+        - name: JMETER_HOME
+          value: "/opt/apache-jmeter"
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        volumeMounts:
+        - name: results
+          mountPath: /jmeter/results
+      volumes:
+      - name: results
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jmeter-tests
+  labels:
+    app: jmeter-tests
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: jmeter-tests
+  type: ClusterIP
+
+# Made with Bob
