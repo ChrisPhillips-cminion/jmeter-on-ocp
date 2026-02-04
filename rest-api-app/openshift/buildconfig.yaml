@@ -1,0 +1,41 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: rest-api-app
+  labels:
+    app: rest-api-app
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: rest-api-app:latest
+  source:
+    type: Git
+    git:
+      uri: https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+      ref: main
+    contextDir: rest-api-app
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+  triggers:
+    - type: ConfigChange
+    - type: GitHub
+      github:
+        secret: github-webhook-secret
+    - type: Generic
+      generic:
+        secret: generic-webhook-secret
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: rest-api-app
+  labels:
+    app: rest-api-app
+spec:
+  lookupPolicy:
+    local: false
+
+# Made with Bob

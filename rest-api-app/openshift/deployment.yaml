@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rest-api-app
+  labels:
+    app: rest-api-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: rest-api-app
+  template:
+    metadata:
+      labels:
+        app: rest-api-app
+    spec:
+      containers:
+      - name: rest-api-app
+        image: image-registry.openshift-image-registry.svc:5000/YOUR_NAMESPACE/rest-api-app:latest
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        env:
+        - name: FLASK_ENV
+          value: "production"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rest-api-app
+  labels:
+    app: rest-api-app
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: rest-api-app
+  type: ClusterIP
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: rest-api-app
+  labels:
+    app: rest-api-app
+spec:
+  to:
+    kind: Service
+    name: rest-api-app
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+
+# Made with Bob
