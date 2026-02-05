@@ -2,8 +2,20 @@
 
 # Deployment script for JMeter Load Tests on OpenShift
 # This script automates the build and deployment process
+# Usage: ./deploy-nanogw.sh [--skip-build]
 
 set -e
+
+# Parse command line arguments
+SKIP_BUILD=false
+for arg in "$@"; do
+    case $arg in
+        --skip-build)
+            SKIP_BUILD=true
+            shift
+            ;;
+    esac
+done
 
 # Function to print with timestamp
 log() {
@@ -73,6 +85,7 @@ log "  Namespace: $CURRENT_PROJECT"
 log "  Target Service: 172.30.189.189:8080"
 log "  NanoGW Host: $NANOGW_HOST"
 log "  NanoGW Service: $NANOGW_SERVICE"
+log "  Skip Build: $SKIP_BUILD"
 echo ""
 read -p "Continue with deployment? (y/n): " CONFIRM
 if [ "$CONFIRM" != "y" ]; then
@@ -89,8 +102,9 @@ if oc get dc jmeter-tests &> /dev/null; then
     oc wait --for=delete pod -l app=jmeter-tests --timeout=60s 2>/dev/null || true
 fi
 
-echo ""
-log "Step 2: Creating BuildConfig and ImageStream..."
+if [ "$SKIP_BUILD" = false ]; then
+    echo ""
+    log "Step 2: Creating BuildConfig and ImageStream..."
 
 # Create temporary buildconfig with substituted values
 cat > /tmp/jmeter-buildconfig-temp.yaml << EOF
@@ -135,11 +149,24 @@ spec:
     local: false
 EOF
 
-oc apply -f /tmp/jmeter-buildconfig-temp.yaml
+    oc apply -f /tmp/jmeter-buildconfig-temp.yaml
 
-echo ""
-log "Step 3: Starting build..."
-oc start-build jmeter-tests --follow
+    echo ""
+    log "Step 3: Starting build..."
+    oc start-build jmeter-tests --follow
+else
+    echo ""
+    log "Step 2: Skipping build (using existing image)..."
+    
+    # Check if ImageStream exists
+    if ! oc get is jmeter-tests &> /dev/null; then
+        log "Error: ImageStream 'jmeter-tests' does not exist. Cannot skip build."
+        log "Please run without --skip-build first to create the image."
+        exit 1
+    fi
+    
+    log "Using existing ImageStream: jmeter-tests:latest"
+fi
 
 echo ""
 log "Step 4: Creating DeploymentConfig..."

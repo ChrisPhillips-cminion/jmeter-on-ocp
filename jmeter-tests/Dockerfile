@@ -18,6 +18,15 @@ RUN wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_
     mv apache-jmeter-${JMETER_VERSION} ${JMETER_HOME} && \
     rm apache-jmeter-${JMETER_VERSION}.tgz
 
+# Download and install JMeter Plugins Manager
+RUN wget https://jmeter-plugins.org/get/ -O ${JMETER_HOME}/lib/ext/jmeter-plugins-manager.jar && \
+    wget https://repo1.maven.org/maven2/kg/apc/cmdrunner/2.3/cmdrunner-2.3.jar -O ${JMETER_HOME}/lib/cmdrunner-2.3.jar
+
+# Install required plugins using PluginsManagerCMD
+RUN cd ${JMETER_HOME}/lib && \
+    java -cp ${JMETER_HOME}/lib/ext/jmeter-plugins-manager.jar org.jmeterplugins.repository.PluginManagerCMDInstaller && \
+    ${JMETER_HOME}/bin/PluginsManagerCMD.sh install jpgc-casutg=2.10
+
 # Create results directory and set permissions
 RUN mkdir -p /jmeter/results && \
     chown -R 1001:0 /jmeter && \
