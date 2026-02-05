@@ -153,7 +153,11 @@ EOF
 
     echo ""
     log "Step 3: Starting build..."
-    oc start-build jmeter-tests --follow
+    if ! oc start-build jmeter-tests --follow; then
+        log "ERROR: Build failed! Stopping deployment."
+        exit 1
+    fi
+    log "Build completed successfully"
 else
     echo ""
     log "Step 2: Skipping build (using existing image)..."

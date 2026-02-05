@@ -124,7 +124,11 @@ oc apply -f /tmp/jmeter-buildconfig-temp.yaml
 
 echo ""
 log "Step 2: Starting build..."
-oc start-build jmeter-tests --follow
+if ! oc start-build jmeter-tests --follow; then
+    log "ERROR: Build failed! Stopping deployment."
+    exit 1
+fi
+log "Build completed successfully"
 
 echo ""
 log "Step 3: Creating DeploymentConfig..."

@@ -64,45 +64,33 @@
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
       </ThreadGroup>
       <hashTree>
-        <JSR223Sampler guiclass="TestBeanGUI" testclass="JSR223Sampler" testname="Stepping Load Controller" enabled="true">
+        <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="Initialize Start Time" enabled="true">
           <stringProp name="cacheKey">true</stringProp>
           <stringProp name="filename"></stringProp>
           <stringProp name="parameters"></stringProp>
-          <stringProp name="script">// Stepping load controller - simulates UltimateThreadGroup behavior
-// This controls which threads should be active at any given time
-
-def stepDuration = Integer.parseInt(vars.get("STEP_DURATION"))
-def totalSteps = Integer.parseInt(vars.get("TOTAL_STEPS"))
-def threadNum = ctx.getThreadNum()
-def testStartTime = ctx.getThreadGroup().getStartTime()
-def currentTime = System.currentTimeMillis()
-def elapsedSeconds = (currentTime - testStartTime) / 1000
-
-// Calculate which step we're in (0-based)
-def currentStep = (int)(elapsedSeconds / stepDuration)
-
-// Calculate max threads for current step (doubling: 1, 2, 4, 8, 16, ...)
-def maxThreadsForStep = (int)Math.pow(2, currentStep)
-
-// If we're beyond the configured steps, allow all threads
-if (currentStep >= totalSteps) {
-    maxThreadsForStep = 4096
+          <stringProp name="script">// Initialize test start time once per thread
+if (props.get("test_start_time") == null) {
+    props.put("test_start_time", System.currentTimeMillis().toString())
 }
-
-// If this thread number is higher than allowed for current step, skip execution
-if (threadNum > maxThreadsForStep) {
-    // Sleep for a bit and return without executing the HTTP request
-    Thread.sleep(1000)
-    SampleResult.setIgnore()
-    return
-}
-
-// Thread is active for this step - proceed with normal execution
 </stringProp>
           <stringProp name="scriptLanguage">groovy</stringProp>
-        </JSR223Sampler>
+        </JSR223PreProcessor>
         <hashTree/>
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /1.0.0/perf/test" enabled="true">
+        <IfController guiclass="IfControllerPanel" testclass="IfController" testname="Stepping Load Controller" enabled="true">
+          <stringProp name="IfController.condition">${__groovy(
+def stepDuration = Integer.parseInt(vars.get("STEP_DURATION"))
+def threadNum = ctx.getThreadNum()
+def testStartTime = Long.parseLong(props.get("test_start_time"))
+def elapsedSeconds = (System.currentTimeMillis() - testStartTime) / 1000
+def currentStep = (int)(elapsedSeconds / stepDuration)
+def maxThreads = (int)Math.pow(2\, currentStep)
+threadNum <= maxThreads
+,)}</stringProp>
+          <boolProp name="IfController.evaluateAll">false</boolProp>
+          <boolProp name="IfController.useExpression">true</boolProp>
+        </IfController>
+        <hashTree>
+          <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /1.0.0/perf/test" enabled="true">
           <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments">
@@ -133,9 +121,9 @@ if (threadNum > maxThreadsForStep) {
           <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
           <stringProp name="HTTPSampler.connect_timeout"></stringProp>
           <stringProp name="HTTPSampler.response_timeout"></stringProp>
-        </HTTPSamplerProxy>
-        <hashTree>
-          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
+          </HTTPSamplerProxy>
+          <hashTree>
+            <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
             <collectionProp name="HeaderManager.headers">
               <elementProp name="" elementType="Header">
                 <stringProp name="Header.name">Content-Type</stringProp>
@@ -145,33 +133,34 @@ if (threadNum > maxThreadsForStep) {
                 <stringProp name="Header.name">Host</stringProp>
                 <stringProp name="Header.value">perf-test-api-product-sandbox-chris.nanogw.apps.bubble.hur.hdclab.intranet.ibm.com</stringProp>
               </elementProp>
-            </collectionProp>
-          </HeaderManager>
-          <hashTree/>
-          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Code Assertion" enabled="true">
+              </collectionProp>
+            </HeaderManager>
+            <hashTree/>
+            <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Code Assertion" enabled="true">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="49586">200</stringProp>
             </collectionProp>
             <stringProp name="Assertion.custom_message"></stringProp>
             <stringProp name="Assertion.test_field">Assertion.response_code</stringProp>
             <boolProp name="Assertion.assume_success">false</boolProp>
-            <intProp name="Assertion.test_type">8</intProp>
-          </ResponseAssertion>
-          <hashTree/>
-          <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="JSON Status Assertion" enabled="true">
+              <intProp name="Assertion.test_type">8</intProp>
+            </ResponseAssertion>
+            <hashTree/>
+            <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="JSON Status Assertion" enabled="true">
             <stringProp name="JSON_PATH">$.status</stringProp>
             <stringProp name="EXPECTED_VALUE">success</stringProp>
             <boolProp name="JSONVALIDATION">true</boolProp>
             <boolProp name="EXPECT_NULL">false</boolProp>
             <boolProp name="INVERT">false</boolProp>
-            <boolProp name="ISREGEX">false</boolProp>
-          </JSONPathAssertion>
+              <boolProp name="ISREGEX">false</boolProp>
+            </JSONPathAssertion>
+            <hashTree/>
+          </hashTree>
+          <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
+            <stringProp name="ConstantTimer.delay">100</stringProp>
+          </ConstantTimer>
           <hashTree/>
         </hashTree>
-        <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
-          <stringProp name="ConstantTimer.delay">100</stringProp>
-        </ConstantTimer>
-        <hashTree/>
       </hashTree>
       <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report" enabled="true">
         <boolProp name="ResultCollector.error_logging">false</boolProp>
