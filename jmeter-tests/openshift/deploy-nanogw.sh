@@ -169,11 +169,11 @@ spec:
             tail -f /dev/null
         env:
         - name: HOST
-          value: "$TARGET_SERVICE"
+          value: "$NANOGW_SERVICE"
         - name: PORT
-          value: "8080"
+          value: "443"
         - name: PROTOCOL
-          value: "http"
+          value: "https"
         - name: JMETER_HOME
           value: "/opt/apache-jmeter"
         resources:
