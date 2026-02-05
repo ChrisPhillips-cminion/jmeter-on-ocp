@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Deployment script for REST API Sleep Service on OpenShift
-# This script automates the deployment process
+# Deployment script for REST API App on OpenShift
+# This script automates the build and deployment process for the high-performance Go REST API
 
 set -e
 
-echo "REST API Sleep Service - OpenShift Deployment"
-echo "=============================================="
+echo "REST API App - OpenShift Deployment"
+echo "===================================="
 echo ""
 
 # Check if oc is installed
@@ -27,16 +27,15 @@ echo "Current OpenShift project: $CURRENT_PROJECT"
 echo ""
 
 # Prompt for GitHub repository URL
-GITHUB_URL=https://github.com/ChrisPhillips-cminion/jmeter-on-ocp
-if [ -z "$GITHUB_URL" ]; then
-    echo "Error: GitHub URL is required"
-    exit 1
-fi
+read -p "Enter GitHub repository URL [https://github.com/ChrisPhillips-cminion/jmeter-on-ocp]: " GITHUB_URL
+GITHUB_URL=${GITHUB_URL:-https://github.com/ChrisPhillips-cminion/jmeter-on-ocp}
 
 # Prompt for branch (default: main)
-BRANCH=main
+read -p "Enter branch name [main]: " BRANCH
+BRANCH=${BRANCH:-main}
 
 # Prompt for context directory (default: rest-api-app)
+read -p "Enter context directory [rest-api-app]: " CONTEXT_DIR
 CONTEXT_DIR=${CONTEXT_DIR:-rest-api-app}
 
 echo ""
@@ -53,10 +52,10 @@ if [ "$CONFIRM" != "y" ]; then
 fi
 
 echo ""
-echo "Step 1: Creating temporary configuration files..."
+echo "Step 1: Creating BuildConfig and ImageStream..."
 
-# Create temporary buildconfig with substituted values
-cat > /tmp/buildconfig-temp.yaml << EOF
+# Create BuildConfig and ImageStream
+cat > /tmp/rest-api-buildconfig-temp.yaml << EOF
 apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
@@ -98,139 +97,69 @@ spec:
     local: false
 EOF
 
-# Create temporary deployment with substituted namespace
-cat > /tmp/deployment-temp.yaml << EOF
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: rest-api-app
-  labels:
-    app: rest-api-app
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: rest-api-app
-  template:
-    metadata:
-      labels:
-        app: rest-api-app
-    spec:
-      containers:
-      - name: rest-api-app
-        image: image-registry.openshift-image-registry.svc:5000/$CURRENT_PROJECT/rest-api-app:latest
-        ports:
-        - containerPort: 8080
-          protocol: TCP
-        env:
-        - name: FLASK_ENV
-          value: "production"
-        resources:
-          requests:
-            memory: "128Mi"
-            cpu: "100m"
-          limits:
-            memory: "512Mi"
-            cpu: "500m"
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8080
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
-        readinessProbe:
-          httpGet:
-            path: /health
-            port: 8080
-          initialDelaySeconds: 10
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 3
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: rest-api-app
-  labels:
-    app: rest-api-app
-spec:
-  ports:
-  - name: http
-    port: 8080
-    targetPort: 8080
-    protocol: TCP
-  selector:
-    app: rest-api-app
-  type: ClusterIP
----
-apiVersion: route.openshift.io/v1
-kind: Route
-metadata:
-  name: rest-api-app
-  labels:
-    app: rest-api-app
-spec:
-  to:
-    kind: Service
-    name: rest-api-app
-    weight: 100
-  port:
-    targetPort: http
-  tls:
-    termination: edge
-    insecureEdgeTerminationPolicy: Redirect
-  wildcardPolicy: None
-EOF
-
-echo "Step 2: Creating BuildConfig and ImageStream..."
-oc apply -f /tmp/buildconfig-temp.yaml
+oc apply -f /tmp/rest-api-buildconfig-temp.yaml
 
 echo ""
-echo "Step 3: Starting build..."
+echo "Step 2: Starting build..."
 oc start-build rest-api-app --follow
 
 echo ""
-echo "Step 4: Deploying application..."
-oc apply -f /tmp/deployment-temp.yaml
+echo "Step 3: Deploying DeploymentConfig..."
+
+# Apply the DeploymentConfig from the repository
+oc apply -f deployment.yaml
 
 echo ""
-echo "Step 5: Waiting for deployment to be ready..."
-oc rollout status deployment/rest-api-app --timeout=5m
+echo "Step 4: Waiting for deployment to be ready..."
+oc rollout status dc/rest-api-app --timeout=5m
 
 echo ""
-echo "Step 6: Creating HorizontalPodAutoscaler..."
-oc apply -f "$(dirname "$0")/hpa.yaml"
+echo "Step 5: Getting service information..."
+ROUTE_HOST=$(oc get route rest-api-app -o jsonpath='{.spec.host}' 2>/dev/null || echo "No route found")
+SERVICE_IP=$(oc get service rest-api-app -o jsonpath='{.spec.clusterIP}')
 
 echo ""
-echo "Step 7: Getting route URL..."
-ROUTE_URL=$(oc get route rest-api-app -o jsonpath='{.spec.host}')
-
-echo ""
-echo "=============================================="
+echo "===================================="
 echo "Deployment completed successfully!"
 echo ""
-echo "HPA Status:"
-oc get hpa rest-api-app-hpa
+echo "Service Information:"
+echo "  Service IP: $SERVICE_IP"
+echo "  Service Port: 8080"
+if [ "$ROUTE_HOST" != "No route found" ]; then
+    echo "  External URL: https://$ROUTE_HOST"
+fi
 echo ""
-echo "Application URL: https://$ROUTE_URL"
+echo "Test the API:"
+echo "  Health check:"
+echo "    curl http://$SERVICE_IP:8080/health"
+if [ "$ROUTE_HOST" != "No route found" ]; then
+    echo "    curl https://$ROUTE_HOST/health"
+fi
 echo ""
-echo "Test the deployment:"
-echo "  curl https://$ROUTE_URL/health"
-echo "  curl -X POST 'https://$ROUTE_URL/api/process?sleep_time=2' \\"
-echo "    -H 'Content-Type: application/json' \\"
-echo "    -d '{\"test\": \"data\"}'"
+echo "  Process endpoint:"
+echo "    curl -X POST 'http://$SERVICE_IP:8080/api/process?sleep_time=0.03' \\"
+echo "      -H 'Content-Type: application/json' \\"
+echo "      -d '{\"test\": \"data\"}'"
+echo ""
+echo "Monitor pods:"
+echo "  oc get pods -l app=rest-api-app"
 echo ""
 echo "View logs:"
-echo "  oc logs -f deployment/rest-api-app"
+echo "  oc logs -f dc/rest-api-app"
 echo ""
 echo "Scale deployment:"
-echo "  oc scale deployment/rest-api-app --replicas=5"
+echo "  oc scale dc/rest-api-app --replicas=4"
+echo ""
+echo "Delete deployment when done:"
+echo "  oc delete dc rest-api-app"
+echo "  oc delete service rest-api-app"
+echo "  oc delete route rest-api-app"
+echo "  oc delete bc rest-api-app"
+echo "  oc delete is rest-api-app"
 echo ""
 
 # Cleanup temp files
-rm -f /tmp/buildconfig-temp.yaml /tmp/deployment-temp.yaml
+rm -f /tmp/rest-api-buildconfig-temp.yaml
 
 echo "GitHub Webhook URL (for automatic builds):"
 oc describe bc rest-api-app | grep -A 1 "Webhook GitHub" || echo "  Run: oc describe bc rest-api-app"
