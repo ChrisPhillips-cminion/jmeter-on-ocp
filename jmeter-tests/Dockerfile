@@ -22,10 +22,12 @@ RUN wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-${JMETER_
 RUN wget https://jmeter-plugins.org/get/ -O ${JMETER_HOME}/lib/ext/jmeter-plugins-manager.jar && \
     wget https://repo1.maven.org/maven2/kg/apc/cmdrunner/2.3/cmdrunner-2.3.jar -O ${JMETER_HOME}/lib/cmdrunner-2.3.jar
 
-# Install required plugins using PluginsManagerCMD (only jpgc-casutg for load-test-template.jmx)
+# Install required plugins using PluginsManagerCMD
+# jpgc-casutg provides Concurrency Thread Group for load-test-template.jmx
+# jpgc-standard provides Stepping Thread Group for stepping-load-test.jmx
 RUN cd ${JMETER_HOME}/lib && \
     java -cp ${JMETER_HOME}/lib/ext/jmeter-plugins-manager.jar org.jmeterplugins.repository.PluginManagerCMDInstaller && \
-    ${JMETER_HOME}/bin/PluginsManagerCMD.sh install jpgc-casutg=2.10
+    ${JMETER_HOME}/bin/PluginsManagerCMD.sh install jpgc-casutg=2.10,jpgc-standard=2.0
 
 # Create results directory and set permissions
 RUN mkdir -p /jmeter/results && \
