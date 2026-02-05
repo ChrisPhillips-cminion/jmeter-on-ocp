@@ -3,14 +3,8 @@ FROM golang:1.21-alpine AS builder
 
 WORKDIR /build
 
-# Copy go mod files
-COPY go.mod go.sum ./
-
-# Download dependencies
-RUN go mod download
-
-# Copy source code
-COPY main.go ./
+# Copy source code and go mod files
+COPY go.mod go.sum main.go ./
 
 # Build with optimizations
 # -ldflags="-s -w" strips debug info for smaller binary
