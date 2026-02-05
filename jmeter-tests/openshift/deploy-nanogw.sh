@@ -81,7 +81,16 @@ if [ "$CONFIRM" != "y" ]; then
 fi
 
 echo ""
-log "Step 1: Creating BuildConfig and ImageStream..."
+log "Step 1: Cleaning up existing deployment (if any)..."
+if oc get dc jmeter-tests &> /dev/null; then
+    log "Deleting existing DeploymentConfig..."
+    oc delete dc jmeter-tests --ignore-not-found=true
+    log "Waiting for pods to terminate..."
+    oc wait --for=delete pod -l app=jmeter-tests --timeout=60s 2>/dev/null || true
+fi
+
+echo ""
+log "Step 2: Creating BuildConfig and ImageStream..."
 
 # Create temporary buildconfig with substituted values
 cat > /tmp/jmeter-buildconfig-temp.yaml << EOF
@@ -129,11 +138,11 @@ EOF
 oc apply -f /tmp/jmeter-buildconfig-temp.yaml
 
 echo ""
-log "Step 2: Starting build..."
+log "Step 3: Starting build..."
 oc start-build jmeter-tests --follow
 
 echo ""
-log "Step 3: Creating DeploymentConfig..."
+log "Step 4: Creating DeploymentConfig..."
 
 # Create temporary deployment with substituted values
 cat > /tmp/jmeter-deployment-temp.yaml << EOF
@@ -221,11 +230,11 @@ EOF
 oc apply -f /tmp/jmeter-deployment-temp.yaml
 
 echo ""
-log "Step 4: Waiting for deployment to be ready..."
+log "Step 5: Waiting for deployment to be ready..."
 oc rollout status dc/jmeter-tests --timeout=5m
 
 echo ""
-log "Step 5: Getting pod information..."
+log "Step 6: Getting pod information..."
 POD_NAME=$(oc get pod -l app=jmeter-tests -o jsonpath='{.items[0].metadata.name}')
 
 echo ""
