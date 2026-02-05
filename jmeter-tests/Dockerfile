@@ -7,6 +7,10 @@ ENV JMETER_VERSION=5.6.3
 ENV JMETER_HOME=/opt/apache-jmeter
 ENV PATH=$JMETER_HOME/bin:$PATH
 
+# JVM settings to prevent thread creation errors
+# Reduce thread stack size and increase heap
+ENV JVM_ARGS="-Xms6g -Xmx6g -XX:ThreadStackSize=256k -XX:MaxMetaspaceSize=512m"
+
 # Install dependencies
 RUN microdnf install -y wget tar gzip ca-certificates && \
     microdnf clean all && \
@@ -24,10 +28,10 @@ RUN wget https://jmeter-plugins.org/get/ -O ${JMETER_HOME}/lib/ext/jmeter-plugin
 
 # Install required plugins using PluginsManagerCMD
 # jpgc-casutg provides Concurrency Thread Group for load-test-template.jmx
-# jpgc-standard provides Stepping Thread Group for stepping-load-test.jmx
+# jpgc-utg provides Ultimate Thread Group for stepping-load-test.jmx (exponential growth)
 RUN cd ${JMETER_HOME}/lib && \
     java -cp ${JMETER_HOME}/lib/ext/jmeter-plugins-manager.jar org.jmeterplugins.repository.PluginManagerCMDInstaller && \
-    ${JMETER_HOME}/bin/PluginsManagerCMD.sh install jpgc-casutg=2.10,jpgc-standard=2.0
+    ${JMETER_HOME}/bin/PluginsManagerCMD.sh install jpgc-casutg=2.10,jpgc-utg=2.4
 
 # Create results directory and set permissions
 RUN mkdir -p /jmeter/results && \
