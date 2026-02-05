@@ -12,8 +12,9 @@ PROTOCOL="${PROTOCOL:-http}"
 JMETER_HOME="${JMETER_HOME:-/opt/apache-jmeter}"
 JMETER_BIN="${JMETER_HOME}/bin/jmeter"
 
-# JMeter JVM configuration - set heap size to 5GB
-export JVM_ARGS="-Xms5g -Xmx5g"
+# JMeter JVM configuration - optimized for high thread count
+# Reduce thread stack size to allow more threads, increase heap
+export JVM_ARGS="-Xms6g -Xmx6g -XX:ThreadStackSize=256k -XX:MaxMetaspaceSize=512m -XX:+UseG1GC -XX:MaxGCPauseMillis=100"
 
 # Test timing configuration
 STEP_DURATION=120    # 2 minutes per step
