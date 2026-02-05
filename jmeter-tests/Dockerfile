@@ -28,10 +28,10 @@ RUN wget https://jmeter-plugins.org/get/ -O ${JMETER_HOME}/lib/ext/jmeter-plugin
 
 # Install required plugins using PluginsManagerCMD
 # jpgc-casutg provides Concurrency Thread Group for load-test-template.jmx
-# jpgc-utg provides Ultimate Thread Group for stepping-load-test.jmx (exponential growth)
+# jpgc-graphs-additional provides Ultimate Thread Group for stepping-load-test.jmx (exponential growth)
 RUN cd ${JMETER_HOME}/lib && \
     java -cp ${JMETER_HOME}/lib/ext/jmeter-plugins-manager.jar org.jmeterplugins.repository.PluginManagerCMDInstaller && \
-    ${JMETER_HOME}/bin/PluginsManagerCMD.sh install jpgc-casutg=2.10,jpgc-utg=2.4
+    ${JMETER_HOME}/bin/PluginsManagerCMD.sh install jpgc-casutg=2.10,jpgc-graphs-additional=2.0
 
 # Create results directory and set permissions
 RUN mkdir -p /jmeter/results && \
