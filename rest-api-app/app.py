@@ -16,11 +16,11 @@ def health():
 def process_request():
     """
     Process JSON payload and sleep for specified duration
-    Query param: sleep_time (in seconds, default: 0)
+    Query param: sleep_time (in seconds, default: 0.03)
     """
     try:
         # Get sleep time from query parameter
-        sleep_time = request.args.get('sleep_time', default=0, type=float)
+        sleep_time = request.args.get('sleep_time', default=0.03, type=float)
         
         # Validate sleep time is reasonable (max 60 seconds)
         if sleep_time < 0:

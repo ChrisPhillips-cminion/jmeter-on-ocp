@@ -21,8 +21,21 @@ if ! oc whoami &> /dev/null; then
     exit 1
 fi
 
-# Get current project
-CURRENT_PROJECT=jmeter
+# Set target namespace
+NAMESPACE=jmeter
+
+# Check if namespace exists, create if it doesn't
+if ! oc get namespace $NAMESPACE &> /dev/null; then
+    echo "Namespace '$NAMESPACE' does not exist. Creating it..."
+    oc create namespace $NAMESPACE
+    echo "Namespace '$NAMESPACE' created successfully"
+else
+    echo "Namespace '$NAMESPACE' already exists"
+fi
+
+# Switch to the namespace
+oc project $NAMESPACE
+CURRENT_PROJECT=$NAMESPACE
 echo "Current OpenShift project: $CURRENT_PROJECT"
 echo ""
 
@@ -40,7 +53,7 @@ BRANCH=${BRANCH:-main}
 CONTEXT_DIR=jmeter-tests
 
 # Prompt for target service name
-TARGET_SERVICE=${TARGET_SERVICE:-rest-api-app}
+TARGET_SERVICE=172.30.189.189
 
 echo ""
 echo "Configuration:"
@@ -48,7 +61,7 @@ echo "  GitHub URL: $GITHUB_URL"
 echo "  Branch: $BRANCH"
 echo "  Context Dir: $CONTEXT_DIR"
 echo "  Namespace: $CURRENT_PROJECT"
-echo "  Target Service: $TARGET_SERVICE.$CURRENT_PROJECT.svc.cluster.local"
+echo "  Target Service: 172.30.189.189:8080"
 echo ""
 read -p "Continue with deployment? (y/n): " CONFIRM
 if [ "$CONFIRM" != "y" ]; then
@@ -109,21 +122,21 @@ echo "Step 2: Starting build..."
 oc start-build jmeter-tests --follow
 
 echo ""
-echo "Step 3: Creating Deployment..."
+echo "Step 3: Creating DeploymentConfig..."
 
 # Create temporary deployment with substituted values
 cat > /tmp/jmeter-deployment-temp.yaml << EOF
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
 metadata:
   name: jmeter-tests
+  namespace: $NAMESPACE
   labels:
     app: jmeter-tests
 spec:
   replicas: 1
   selector:
-    matchLabels:
-      app: jmeter-tests
+    app: jmeter-tests
   template:
     metadata:
       labels:
@@ -131,7 +144,7 @@ spec:
     spec:
       containers:
       - name: jmeter-tests
-        image: image-registry.openshift-image-registry.svc:5000/$CURRENT_PROJECT/jmeter-tests:latest
+        image: jmeter-tests:latest
         command: ["/bin/bash"]
         args:
           - "-c"
@@ -145,7 +158,7 @@ spec:
             tail -f /dev/null
         env:
         - name: HOST
-          value: "$TARGET_SERVICE.$CURRENT_PROJECT.svc.cluster.local"
+          value: "$TARGET_SERVICE"
         - name: PORT
           value: "8080"
         - name: PROTOCOL
@@ -165,11 +178,22 @@ spec:
       volumes:
       - name: results
         emptyDir: {}
+  triggers:
+  - type: ConfigChange
+  - type: ImageChange
+    imageChangeParams:
+      automatic: true
+      containerNames:
+      - jmeter-tests
+      from:
+        kind: ImageStreamTag
+        name: jmeter-tests:latest
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: jmeter-tests
+  namespace: $NAMESPACE
   labels:
     app: jmeter-tests
 spec:
@@ -187,7 +211,7 @@ oc apply -f /tmp/jmeter-deployment-temp.yaml
 
 echo ""
 echo "Step 4: Waiting for deployment to be ready..."
-oc rollout status deployment/jmeter-tests --timeout=5m
+oc rollout status dc/jmeter-tests --timeout=5m
 
 echo ""
 echo "Step 5: Getting pod information..."
@@ -212,8 +236,10 @@ echo "View results in pod:"
 echo "  oc exec $POD_NAME -- ls -lh /jmeter/results"
 echo ""
 echo "Delete deployment when done:"
-echo "  oc delete deployment jmeter-tests"
+echo "  oc delete dc jmeter-tests"
 echo "  oc delete service jmeter-tests"
+echo "  oc delete bc jmeter-tests"
+echo "  oc delete is jmeter-tests"
 echo ""
 
 # Cleanup temp files

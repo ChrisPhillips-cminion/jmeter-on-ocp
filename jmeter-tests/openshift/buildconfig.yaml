@@ -2,6 +2,7 @@ apiVersion: build.openshift.io/v1
 kind: BuildConfig
 metadata:
   name: jmeter-tests
+  namespace: jmeter
   labels:
     app: jmeter-tests
 spec:
@@ -32,6 +33,7 @@ apiVersion: image.openshift.io/v1
 kind: ImageStream
 metadata:
   name: jmeter-tests
+  namespace: jmeter
   labels:
     app: jmeter-tests
 spec:

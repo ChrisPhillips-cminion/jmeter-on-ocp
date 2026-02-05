@@ -1,14 +1,14 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
 metadata:
   name: jmeter-tests
+  namespace: jmeter
   labels:
     app: jmeter-tests
 spec:
   replicas: 1
   selector:
-    matchLabels:
-      app: jmeter-tests
+    app: jmeter-tests
   template:
     metadata:
       labels:
@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: jmeter-tests
-        image: image-registry.openshift-image-registry.svc:5000/YOUR_NAMESPACE/jmeter-tests:latest
+        image: jmeter-tests:latest
         command: ["/bin/bash"]
         args:
           - "-c"
@@ -39,22 +39,33 @@ spec:
           value: "/opt/apache-jmeter"
         resources:
           requests:
-            memory: "2Gi"
+            memory: "6Gi"
             cpu: "1000m"
           limits:
-            memory: "4Gi"
-            cpu: "2000m"
+            memory: "6Gi"
+            cpu: "3000m"
         volumeMounts:
         - name: results
           mountPath: /jmeter/results
       volumes:
       - name: results
         emptyDir: {}
+  triggers:
+  - type: ConfigChange
+  - type: ImageChange
+    imageChangeParams:
+      automatic: true
+      containerNames:
+      - jmeter-tests
+      from:
+        kind: ImageStreamTag
+        name: jmeter-tests:latest
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: jmeter-tests
+  namespace: jmeter
   labels:
     app: jmeter-tests
 spec:
