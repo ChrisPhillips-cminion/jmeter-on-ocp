@@ -50,7 +50,7 @@
       <stringProp name="TestPlan.user_define_classpath"></stringProp>
     </TestPlan>
     <hashTree>
-      <kg.apc.jmeter.threads.UltimateThreadGroup guiclass="kg.apc.jmeter.threads.UltimateThreadGroupGui" testclass="kg.apc.jmeter.threads.UltimateThreadGroup" testname="Ultimate Thread Group (1→4096)" enabled="true">
+      <kg.apc.jmeter.threads.UltimateThreadGroup guiclass="kg.apc.jmeter.threads.UltimateThreadGroupGui" testclass="kg.apc.jmeter.threads.UltimateThreadGroup" testname="Ultimate Thread Group (1→128)" enabled="true">
         <collectionProp name="ultimatethreadgroupdata">
           <collectionProp name="step1">
             <stringProp name="1">1</stringProp>
@@ -104,41 +104,6 @@
           <collectionProp name="step8">
             <stringProp name="128">128</stringProp>
             <stringProp name="1050">1050</stringProp>
-            <stringProp name="30">30</stringProp>
-            <stringProp name="120">120</stringProp>
-            <stringProp name="10">10</stringProp>
-          </collectionProp>
-          <collectionProp name="step9">
-            <stringProp name="256">256</stringProp>
-            <stringProp name="1200">1200</stringProp>
-            <stringProp name="30">30</stringProp>
-            <stringProp name="120">120</stringProp>
-            <stringProp name="10">10</stringProp>
-          </collectionProp>
-          <collectionProp name="step10">
-            <stringProp name="512">512</stringProp>
-            <stringProp name="1350">1350</stringProp>
-            <stringProp name="30">30</stringProp>
-            <stringProp name="120">120</stringProp>
-            <stringProp name="10">10</stringProp>
-          </collectionProp>
-          <collectionProp name="step11">
-            <stringProp name="1024">1024</stringProp>
-            <stringProp name="1500">1500</stringProp>
-            <stringProp name="30">30</stringProp>
-            <stringProp name="120">120</stringProp>
-            <stringProp name="10">10</stringProp>
-          </collectionProp>
-          <collectionProp name="step12">
-            <stringProp name="2048">2048</stringProp>
-            <stringProp name="1650">1650</stringProp>
-            <stringProp name="30">30</stringProp>
-            <stringProp name="120">120</stringProp>
-            <stringProp name="10">10</stringProp>
-          </collectionProp>
-          <collectionProp name="step13">
-            <stringProp name="4096">4096</stringProp>
-            <stringProp name="1800">1800</stringProp>
             <stringProp name="30">30</stringProp>
             <stringProp name="120">120</stringProp>
             <stringProp name="10">10</stringProp>
