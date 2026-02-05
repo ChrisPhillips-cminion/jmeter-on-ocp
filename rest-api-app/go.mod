@@ -15,4 +15,3 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 )
 
-<!-- Made with Bob -->

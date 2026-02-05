@@ -106,8 +106,8 @@ oc start-build rest-api-app --follow
 echo ""
 echo "Step 3: Deploying DeploymentConfig..."
 
-# Apply the DeploymentConfig from the repository
-oc apply -f deployment.yaml
+# Apply the DeploymentConfig from the openshift directory
+oc apply -f openshift/deployment.yaml
 
 echo ""
 echo "Step 4: Waiting for deployment to be ready..."
