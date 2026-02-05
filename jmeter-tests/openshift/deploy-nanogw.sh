@@ -169,8 +169,8 @@ spec:
         args:
           - "-c"
           - |
-            echo "Starting JMeter load tests..."
-            ./run-all-tests.sh
+            echo "Starting JMeter stepping load tests..."
+            ./run-stepping-test.sh
             echo "Tests completed. Pod will remain running for result retrieval."
             echo "Results are available in /jmeter/results"
             echo "To copy results: oc rsync \$(oc get pod -l app=jmeter-tests -o name | cut -d/ -f2):/jmeter/results ./local-results"
