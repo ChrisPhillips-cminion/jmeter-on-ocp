@@ -25,7 +25,7 @@ RUN wget https://jmeter-plugins.org/get/ -O ${JMETER_HOME}/lib/ext/jmeter-plugin
 # Install required plugins using PluginsManagerCMD
 RUN cd ${JMETER_HOME}/lib && \
     java -cp ${JMETER_HOME}/lib/ext/jmeter-plugins-manager.jar org.jmeterplugins.repository.PluginManagerCMDInstaller && \
-    ${JMETER_HOME}/bin/PluginsManagerCMD.sh install jpgc-casutg=2.10
+    ${JMETER_HOME}/bin/PluginsManagerCMD.sh install jpgc-casutg=2.10,jpgc-utg=2.4
 
 # Create results directory and set permissions
 RUN mkdir -p /jmeter/results && \
