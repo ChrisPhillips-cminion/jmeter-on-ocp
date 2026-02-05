@@ -60,6 +60,10 @@ CONTEXT_DIR=jmeter-tests
 # Prompt for target service name
 TARGET_SERVICE=172.30.189.189
 
+# NanoGW configuration
+NANOGW_HOST=perf-test-api-product-sandbox-chris.nanogw.apps.bubble.hur.hdclab.intranet.ibm.com
+NANOGW_SERVICE=ngw-nanogw-svc.apicv12.svc.cluster.local
+
 echo ""
 log "Configuration:"
 log "  GitHub URL: $GITHUB_URL"
@@ -67,6 +71,8 @@ log "  Branch: $BRANCH"
 log "  Context Dir: $CONTEXT_DIR"
 log "  Namespace: $CURRENT_PROJECT"
 log "  Target Service: 172.30.189.189:8080"
+log "  NanoGW Host: $NANOGW_HOST"
+log "  NanoGW Service: $NANOGW_SERVICE"
 echo ""
 read -p "Continue with deployment? (y/n): " CONFIRM
 if [ "$CONFIRM" != "y" ]; then
@@ -252,6 +258,56 @@ rm -f /tmp/jmeter-buildconfig-temp.yaml /tmp/jmeter-deployment-temp.yaml
 
 log "GitHub Webhook URL (for automatic builds):"
 oc describe bc jmeter-tests | grep -A 1 "Webhook GitHub" || log "  Run: oc describe bc jmeter-tests"
+echo ""
+
+# Generate sample curl request for NanoGW API
+echo ""
+log "=========================================="
+log "Sample curl requests for NanoGW API:"
+log "=========================================="
+echo ""
+log "# External URL (from outside the cluster):"
+log "# Replace <client-id> and <client-secret> with your actual credentials"
+echo ""
+log "curl -X POST 'https://$NANOGW_HOST/perf/test?sleep_time=0.03' \\"
+log "  -H 'Content-Type: application/json' \\"
+log "  -H 'X-IBM-Client-Id: <client-id>' \\"
+log "  -H 'X-IBM-Client-Secret: <client-secret>' \\"
+log "  -d '{\"test\": \"data\", \"timestamp\": \"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'\"}'"
+echo ""
+log "# Internal URL (from within the cluster):"
+echo ""
+log "curl -X POST 'https://$NANOGW_SERVICE:443/1.0.0/perf/test?sleep_time=0.03' \\"
+log "  -H 'Content-Type: application/json' \\"
+log "  -H 'Host: $NANOGW_HOST' \\"
+log "  -d '{\"test\": \"data\", \"timestamp\": \"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'\"}' \\"
+log "  -k"
+echo ""
+log "# Expected response:"
+log "# {"
+log "#   \"status\": \"success\","
+log "#   \"message\": \"JSON validated and processed\","
+log "#   \"sleep_time\": 0.03,"
+log "#   \"payload_size\": <size>"
+log "# }"
+echo ""
+log "# Test with different sleep times (external):"
+log "curl -X POST 'https://$NANOGW_HOST/perf/test?sleep_time=0.1' \\"
+log "  -H 'Content-Type: application/json' \\"
+log "  -H 'X-IBM-Client-Id: <client-id>' \\"
+log "  -H 'X-IBM-Client-Secret: <client-secret>' \\"
+log "  -d '{\"message\": \"load test\", \"iteration\": 1}'"
+echo ""
+log "# Test with different sleep times (internal):"
+log "curl -X POST 'https://$NANOGW_SERVICE:443/1.0.0/perf/test?sleep_time=0.1' \\"
+log "  -H 'Content-Type: application/json' \\"
+log "  -H 'Host: $NANOGW_HOST' \\"
+log "  -d '{\"message\": \"load test\", \"iteration\": 1}' \\"
+log "  -k"
+echo ""
+log "# Variables for easy customization:"
+log "  NANOGW_HOST=$NANOGW_HOST"
+log "  NANOGW_SERVICE=$NANOGW_SERVICE"
 echo ""
 
 # Made with Bob
