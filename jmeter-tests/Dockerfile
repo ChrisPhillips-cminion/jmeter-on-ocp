@@ -30,11 +30,13 @@ WORKDIR /jmeter
 
 # Copy test files
 COPY --chown=1001:0 load-test-template.jmx /jmeter/
+COPY --chown=1001:0 stepping-load-test.jmx /jmeter/
 COPY --chown=1001:0 run-all-tests.sh /jmeter/
+COPY --chown=1001:0 run-stepping-test.sh /jmeter/
 COPY --chown=1001:0 generate_payload.py /jmeter/
 
 # Make scripts executable
-RUN chmod +x /jmeter/run-all-tests.sh /jmeter/generate_payload.py
+RUN chmod +x /jmeter/run-all-tests.sh /jmeter/run-stepping-test.sh /jmeter/generate_payload.py
 
 # Set default environment variables
 ENV HOST=172.30.189.189
