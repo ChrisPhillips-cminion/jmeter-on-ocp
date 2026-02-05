@@ -1,0 +1,42 @@
+apiVersion: nano.datapower.ibm.com/v1alpha1
+kind: API
+metadata:
+  name: perf-test-api
+  namespace: apicv12
+  labels:
+    app: perf-test-api
+    apic.ibm.com/api-name: perf-test-api
+    apic.ibm.com/gateway-service-name: nanogw
+spec:
+  definition:
+    OpenAPIv3.0:
+      configMap: perf-test-api-openapi
+  assembly:
+    execute:
+      - invoke:
+          title: Invoke backend service
+          version: 2.0.0
+          endpoint:
+            http:
+              verb: keep
+              target:
+                url: "http://172.30.189.189:8080/api/process$(request.search)"
+                timeout: 60
+                follow-redirects: false
+          parameter-control:
+            type: blocklist
+          header-control:
+            type: blocklist
+          inject-proxy-headers: true
+    catch: []
+    finally: []
+  telemetry:
+    attributes:
+      api_name: perf-test-api
+      api_version: "1.0"
+      api_base_path: /perf/test
+  uriSchemes:
+    - http
+    - https
+
+# Made with Bob

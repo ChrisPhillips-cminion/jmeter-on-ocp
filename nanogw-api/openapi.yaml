@@ -1,0 +1,117 @@
+openapi: 3.0.1
+info:
+  title: Performance Test API
+  version: "1.0"
+  description: NanoGW API for performance testing that proxies to rest-api-app
+  x-ibm-name: perf-test-api
+servers:
+  - url: http://172.30.189.189:8080
+paths:
+  /perf/test:
+    post:
+      summary: Performance test endpoint
+      description: Proxies POST requests to the backend rest-api-app service
+      operationId: perfTest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: JSON payload to be validated and processed
+            example:
+              test: "data"
+              message: "performance test"
+      parameters:
+        - name: sleep_time
+          in: query
+          description: Sleep duration in seconds (default 0.03, max 60)
+          required: false
+          schema:
+            type: number
+            format: float
+            default: 0.03
+            minimum: 0
+            maximum: 60
+      responses:
+        "200":
+          description: Success response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: JSON validated and processed
+                  sleep_time:
+                    type: number
+                    example: 0.03
+                  payload_size:
+                    type: integer
+                    example: 42
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+      security:
+        - X-IBM-Client-Id: []
+          X-IBM-Client-Secret: []
+components:
+  securitySchemes:
+    X-IBM-Client-Id:
+      type: apiKey
+      name: X-IBM-Client-Id
+      in: header
+      description: Client ID for API authentication
+    X-IBM-Client-Secret:
+      type: apiKey
+      name: X-IBM-Client-Secret
+      in: header
+      description: Client Secret for API authentication
+security:
+  - X-IBM-Client-Id: []
+    X-IBM-Client-Secret: []
+x-ibm-configuration:
+  gateway: datapower-nano-gateway
+  type: rest
+  phase: realized
+  enforced: true
+  testable: true
+  cors:
+    enabled: true
+  assembly:
+    execute:
+      - invoke:
+          title: Invoke backend service
+          version: 2.0.0
+          verb: keep
+          target-url: "http://172.30.189.189:8080/api/process$(request.search)"
+          follow-redirects: false
+          timeout: 60
+          parameter-control:
+            type: blocklist
+          header-control:
+            type: blocklist
+          inject-proxy-headers: true
+    catch: []
+    finally: []
+
+# Made with Bob

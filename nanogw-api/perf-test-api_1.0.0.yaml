@@ -1,0 +1,117 @@
+openapi: 3.0.3
+info:
+  title: Performance Test API
+  x-ibm-name: perf-test-api
+  version: 1.0.0
+  description: |
+    High-performance REST API for load testing that validates JSON payloads and introduces configurable sleep delays.
+    Proxies requests to the ultra-optimized Go backend service with fasthttp, json-iterator, and sync.Pool optimizations.
+servers:
+- url: /perf
+  description: Base URL for performance testing API
+paths:
+  /test:
+    summary: Performance test endpoint
+    description: Validates JSON payload and processes with optional sleep delay
+    post:
+      responses:
+        "200":
+          description: Successful processing of JSON payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    description: Processing status
+                    example: success
+                  message:
+                    type: string
+                    description: Status message
+                    example: JSON validated and processed
+                  sleep_time:
+                    type: number
+                    format: float
+                    description: Actual sleep time applied in seconds
+                    example: 0.03
+                  payload_size:
+                    type: integer
+                    description: Size of the received payload in bytes
+                    example: 42
+        "400":
+          description: Bad request — invalid JSON or parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                    example: Invalid JSON payload
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                    example: Internal server error
+      summary: Process JSON payload with optional sleep
+      description: |
+        Accepts a JSON payload, validates it, optionally sleeps for a specified duration, and returns processing results.
+        Designed for high-throughput performance testing with 50,000+ req/s per core capability.
+      parameters:
+      - name: sleep_time
+        in: query
+        description: Sleep duration in seconds (default 0.03, max 60)
+        required: false
+        schema:
+          type: number
+          format: float
+          default: 0.03
+          minimum: 0
+          maximum: 60
+          example: 0.03
+      requestBody:
+        required: true
+        description: JSON payload to be validated and processed
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Any valid JSON object
+            example:
+              test: data
+              message: performance test
+              timestamp: "2026-02-05T16:00:00Z"
+x-ibm-configuration:
+  gateway: datapower-nano-gateway
+  assembly:
+    execute:
+    - invoke:
+        endpoint:
+          http:
+            target:
+              timeout: 60
+              url: http://172.30.189.189:8080/api/process
+              version: HTTP/1.1
+            verb: keep
+        outputMessage: response
+        version: 10.0.0
+    finally: []
+    catch: []
+  cors:
+  - action: allow
+    originList:
+    - '*'
+  uriSchemes:
+    uriSchemes:
+    - https
+    - http
+
+# Made with Bob
