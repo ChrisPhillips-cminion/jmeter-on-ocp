@@ -14,7 +14,9 @@ JMETER_BIN="${JMETER_HOME}/bin/jmeter"
 
 # JMeter JVM configuration - optimized for high thread count
 # Reduce thread stack size to allow more threads, increase heap
-export JVM_ARGS="-Xms6g -Xmx6g -XX:ThreadStackSize=256k -XX:MaxMetaspaceSize=512m -XX:+UseG1GC -XX:MaxGCPauseMillis=100"
+# Use HEAP for memory settings and JVM_ARGS for other settings
+export HEAP="-Xms6g -Xmx6g"
+export JVM_ARGS="-Xss256k -XX:MaxMetaspaceSize=512m -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Djava.net.preferIPv4Stack=true"
 
 # Test timing configuration
 STEP_DURATION=120    # 2 minutes per step
