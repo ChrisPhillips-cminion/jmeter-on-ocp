@@ -30,11 +30,13 @@ spec:
             tail -f /dev/null
         env:
         - name: HOST
-          value: "rest-api-app.YOUR_NAMESPACE.svc.cluster.local"
+          value: "rest-api-app.jmeter.svc.cluster.local"
         - name: PORT
           value: "8080"
         - name: PROTOCOL
           value: "http"
+        - name: HOST_HEADER
+          value: "perf-test-api-product-sandbox-chris.nanogw.apps.bubble.hur.hdclab.intranet.ibm.com"
         - name: JMETER_HOME
           value: "/opt/apache-jmeter"
         resources:

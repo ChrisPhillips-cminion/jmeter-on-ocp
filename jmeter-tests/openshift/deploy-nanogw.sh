@@ -239,23 +239,7 @@ spec:
       from:
         kind: ImageStreamTag
         name: jmeter-tests:latest
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: jmeter-tests
-  namespace: $NAMESPACE
-  labels:
-    app: jmeter-tests
-spec:
-  ports:
-  - name: http
-    port: 8080
-    targetPort: 8080
-    protocol: TCP
-  selector:
-    app: jmeter-tests
-  type: ClusterIP
+
 EOF
 
 oc apply -f /tmp/jmeter-deployment-temp.yaml

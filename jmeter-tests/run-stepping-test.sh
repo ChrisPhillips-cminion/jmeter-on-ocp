@@ -15,6 +15,7 @@ MAX_THREADS_ARG="${2:-}"
 HOST="${HOST:-172.30.251.96}"
 PORT="${PORT:-443}"
 PROTOCOL="${PROTOCOL:-https}"
+HOST_HEADER="${HOST_HEADER:-}"
 JMETER_HOME="${JMETER_HOME:-/opt/apache-jmeter}"
 JMETER_BIN="${JMETER_HOME}/bin/jmeter"
 
@@ -214,6 +215,11 @@ run_stepping_test() {
             <stringProp name="Argument.value">${PROTOCOL}</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
+          <elementProp name="HOST_HEADER" elementType="Argument">
+            <stringProp name="Argument.name">HOST_HEADER</stringProp>
+            <stringProp name="Argument.value">${HOST_HEADER}</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
           <elementProp name="SLEEP_TIME" elementType="Argument">
             <stringProp name="Argument.name">SLEEP_TIME</stringProp>
             <stringProp name="Argument.value">${sleep_time}</stringProp>
@@ -278,6 +284,19 @@ ${thread_group_config}        </collectionProp>
                 <stringProp name="Header.name">Content-Type</stringProp>
                 <stringProp name="Header.value">application/json</stringProp>
               </elementProp>
+EOF
+    
+    # Add Host header if HOST_HEADER is set
+    if [ -n "$HOST_HEADER" ]; then
+        cat >> "$dynamic_jmx" << EOF
+              <elementProp name="" elementType="Header">
+                <stringProp name="Header.name">Host</stringProp>
+                <stringProp name="Header.value">\${HOST_HEADER}</stringProp>
+              </elementProp>
+EOF
+    fi
+    
+    cat >> "$dynamic_jmx" << EOF
             </collectionProp>
           </HeaderManager>
           <hashTree/>
