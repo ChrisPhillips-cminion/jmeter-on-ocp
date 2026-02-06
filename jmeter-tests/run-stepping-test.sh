@@ -12,9 +12,9 @@ PAYLOAD_SIZE_ARG="${1:-}"
 MAX_THREADS_ARG="${2:-}"
 
 # Configuration
-HOST="${HOST:-172.30.189.189}"
-PORT="${PORT:-8080}"
-PROTOCOL="${PROTOCOL:-http}"
+HOST="${HOST:-172.30.251.96}"
+PORT="${PORT:-443}"
+PROTOCOL="${PROTOCOL:-https}"
 JMETER_HOME="${JMETER_HOME:-/opt/apache-jmeter}"
 JMETER_BIN="${JMETER_HOME}/bin/jmeter"
 

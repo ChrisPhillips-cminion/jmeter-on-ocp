@@ -70,7 +70,7 @@ BRANCH=${BRANCH:-main}
 CONTEXT_DIR=jmeter-tests
 
 # Prompt for target service name
-TARGET_SERVICE=172.30.189.189
+TARGET_SERVICE=172.30.251.96
 
 # NanoGW configuration
 NANOGW_HOST=perf-test-api-product-sandbox-chris.nanogw.apps.bubble.hur.hdclab.intranet.ibm.com
@@ -82,7 +82,7 @@ log "  GitHub URL: $GITHUB_URL"
 log "  Branch: $BRANCH"
 log "  Context Dir: $CONTEXT_DIR"
 log "  Namespace: $CURRENT_PROJECT"
-log "  Target Service: 172.30.189.189:8080"
+log "  Target Service: 172.30.189.189"
 log "  NanoGW Host: $NANOGW_HOST"
 log "  NanoGW Service: $NANOGW_SERVICE"
 log "  Skip Build: $SKIP_BUILD"

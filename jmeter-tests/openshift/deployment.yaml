@@ -6,7 +6,7 @@ metadata:
   labels:
     app: jmeter-tests
 spec:
-  replicas: 1
+  replicas: 4
   selector:
     app: jmeter-tests
   template:
@@ -22,7 +22,7 @@ spec:
           - "-c"
           - |
             echo "Starting JMeter load tests..."
-            ./run-all-tests.sh
+            ./run-stepping-test.sh
             echo "Tests completed. Pod will remain running for result retrieval."
             echo "Results are available in /jmeter/results"
             echo "To copy results: oc rsync <pod-name>:/jmeter/results ./local-results"

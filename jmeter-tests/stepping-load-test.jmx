@@ -50,58 +50,58 @@
       <stringProp name="TestPlan.user_define_classpath"></stringProp>
     </TestPlan>
     <hashTree>
-      <kg.apc.jmeter.threads.UltimateThreadGroup guiclass="kg.apc.jmeter.threads.UltimateThreadGroupGui" testclass="kg.apc.jmeter.threads.UltimateThreadGroup" testname="Ultimate Thread Group (1→128)" enabled="true">
+      <kg.apc.jmeter.threads.UltimateThreadGroup guiclass="kg.apc.jmeter.threads.UltimateThreadGroupGui" testclass="kg.apc.jmeter.threads.UltimateThreadGroup" testname="Ultimate Thread Group (1→128)">
         <collectionProp name="ultimatethreadgroupdata">
-          <collectionProp name="step1">
+          <collectionProp name="-1640798820">
             <stringProp name="1">1</stringProp>
             <stringProp name="0">0</stringProp>
             <stringProp name="30">30</stringProp>
             <stringProp name="120">120</stringProp>
             <stringProp name="10">10</stringProp>
           </collectionProp>
-          <collectionProp name="step2">
+          <collectionProp name="2022137882">
             <stringProp name="2">2</stringProp>
             <stringProp name="150">150</stringProp>
             <stringProp name="30">30</stringProp>
             <stringProp name="120">120</stringProp>
             <stringProp name="10">10</stringProp>
           </collectionProp>
-          <collectionProp name="step3">
+          <collectionProp name="-202295332">
             <stringProp name="4">4</stringProp>
             <stringProp name="300">300</stringProp>
             <stringProp name="30">30</stringProp>
             <stringProp name="120">120</stringProp>
             <stringProp name="10">10</stringProp>
           </collectionProp>
-          <collectionProp name="step4">
+          <collectionProp name="1201456588">
             <stringProp name="8">8</stringProp>
             <stringProp name="450">450</stringProp>
             <stringProp name="30">30</stringProp>
             <stringProp name="120">120</stringProp>
             <stringProp name="10">10</stringProp>
           </collectionProp>
-          <collectionProp name="step5">
+          <collectionProp name="604519792">
             <stringProp name="16">16</stringProp>
             <stringProp name="600">600</stringProp>
             <stringProp name="30">30</stringProp>
             <stringProp name="120">120</stringProp>
             <stringProp name="10">10</stringProp>
           </collectionProp>
-          <collectionProp name="step6">
+          <collectionProp name="-391630492">
             <stringProp name="32">32</stringProp>
             <stringProp name="750">750</stringProp>
             <stringProp name="30">30</stringProp>
             <stringProp name="120">120</stringProp>
             <stringProp name="10">10</stringProp>
           </collectionProp>
-          <collectionProp name="step7">
+          <collectionProp name="647659508">
             <stringProp name="64">64</stringProp>
             <stringProp name="900">900</stringProp>
             <stringProp name="30">30</stringProp>
             <stringProp name="120">120</stringProp>
             <stringProp name="10">10</stringProp>
           </collectionProp>
-          <collectionProp name="step8">
+          <collectionProp name="1939462404">
             <stringProp name="128">128</stringProp>
             <stringProp name="1050">1050</stringProp>
             <stringProp name="30">30</stringProp>
@@ -109,47 +109,42 @@
             <stringProp name="10">10</stringProp>
           </collectionProp>
         </collectionProp>
-        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControllerGui" testclass="LoopController" testname="Loop Controller" enabled="true">
-          <boolProp name="LoopController.continue_forever">false</boolProp>
+        <elementProp name="ThreadGroup.main_controller" elementType="LoopController" guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
           <intProp name="LoopController.loops">-1</intProp>
+          <boolProp name="LoopController.continue_forever">false</boolProp>
         </elementProp>
         <stringProp name="ThreadGroup.on_sample_error">continue</stringProp>
       </kg.apc.jmeter.threads.UltimateThreadGroup>
       <hashTree>
-        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /1.0.0/perf/test" enabled="true">
+        <HTTPSamplerProxy guiclass="HttpTestSampleGui" testclass="HTTPSamplerProxy" testname="POST /1.0.0/perf/test">
+          <stringProp name="HTTPSampler.domain">${HOST}</stringProp>
+          <stringProp name="HTTPSampler.port">${PORT}</stringProp>
+          <stringProp name="HTTPSampler.protocol">${PROTOCOL}</stringProp>
+          <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
+          <stringProp name="HTTPSampler.path">/1.0.0/perf/test?sleep_time=${SLEEP_TIME}</stringProp>
+          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
+          <stringProp name="HTTPSampler.method">POST</stringProp>
+          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
           <boolProp name="HTTPSampler.postBodyRaw">true</boolProp>
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments">
               <elementProp name="" elementType="HTTPArgument">
                 <boolProp name="HTTPArgument.always_encode">false</boolProp>
                 <stringProp name="Argument.value">{&#xd;
-  "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss.SSS'Z',)}",&#xd;
-  "test_id": "${__UUID()}",&#xd;
-  "thread": "${__threadNum()}",&#xd;
-  "iteration": "${__counter(FALSE,)}",&#xd;
-  "payload_size": ${PAYLOAD_SIZE},&#xd;
-  "data": "${__RandomString(${PAYLOAD_SIZE},abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,)}"&#xd;
+  &quot;timestamp&quot;: &quot;${__time(yyyy-MM-dd&apos;T&apos;HH:mm:ss.SSS&apos;Z&apos;,)}&quot;,&#xd;
+  &quot;test_id&quot;: &quot;${__UUID()}&quot;,&#xd;
+  &quot;thread&quot;: &quot;${__threadNum()}&quot;,&#xd;
+  &quot;iteration&quot;: &quot;${__counter(FALSE,)}&quot;,&#xd;
+  &quot;payload_size&quot;: ${PAYLOAD_SIZE},&#xd;
+  &quot;data&quot;: &quot;${__RandomString(${PAYLOAD_SIZE},abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789,)}&quot;&#xd;
 }</stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>
               </elementProp>
             </collectionProp>
           </elementProp>
-          <stringProp name="HTTPSampler.domain">${HOST}</stringProp>
-          <stringProp name="HTTPSampler.port">${PORT}</stringProp>
-          <stringProp name="HTTPSampler.protocol">${PROTOCOL}</stringProp>
-          <stringProp name="HTTPSampler.contentEncoding">UTF-8</stringProp>
-          <stringProp name="HTTPSampler.path">/1.0.0/perf/test?sleep_time=${SLEEP_TIME}</stringProp>
-          <stringProp name="HTTPSampler.method">POST</stringProp>
-          <boolProp name="HTTPSampler.follow_redirects">true</boolProp>
-          <boolProp name="HTTPSampler.auto_redirects">false</boolProp>
-          <boolProp name="HTTPSampler.use_keepalive">true</boolProp>
-          <boolProp name="HTTPSampler.DO_MULTIPART_POST">false</boolProp>
-          <stringProp name="HTTPSampler.embedded_url_re"></stringProp>
-          <stringProp name="HTTPSampler.connect_timeout"></stringProp>
-          <stringProp name="HTTPSampler.response_timeout"></stringProp>
         </HTTPSamplerProxy>
         <hashTree>
-          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager" enabled="true">
+          <HeaderManager guiclass="HeaderPanel" testclass="HeaderManager" testname="HTTP Header Manager">
             <collectionProp name="HeaderManager.headers">
               <elementProp name="" elementType="Header">
                 <stringProp name="Header.name">Content-Type</stringProp>
@@ -162,7 +157,7 @@
             </collectionProp>
           </HeaderManager>
           <hashTree/>
-          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Code Assertion" enabled="true">
+          <ResponseAssertion guiclass="AssertionGui" testclass="ResponseAssertion" testname="Response Code Assertion">
             <collectionProp name="Asserion.test_strings">
               <stringProp name="49586">200</stringProp>
             </collectionProp>
@@ -172,7 +167,7 @@
             <intProp name="Assertion.test_type">8</intProp>
           </ResponseAssertion>
           <hashTree/>
-          <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="JSON Status Assertion" enabled="true">
+          <JSONPathAssertion guiclass="JSONPathAssertionGui" testclass="JSONPathAssertion" testname="JSON Status Assertion">
             <stringProp name="JSON_PATH">$.status</stringProp>
             <stringProp name="EXPECTED_VALUE">success</stringProp>
             <boolProp name="JSONVALIDATION">true</boolProp>
@@ -182,12 +177,12 @@
           </JSONPathAssertion>
           <hashTree/>
         </hashTree>
-        <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time" enabled="true">
+        <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Think Time">
           <stringProp name="ConstantTimer.delay">100</stringProp>
         </ConstantTimer>
         <hashTree/>
       </hashTree>
-      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report" enabled="true">
+      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report">
         <boolProp name="ResultCollector.error_logging">false</boolProp>
         <objProp>
           <name>saveConfig</name>
@@ -227,5 +222,3 @@
     </hashTree>
   </hashTree>
 </jmeterTestPlan>
-
-<!-- Made with Bob -->
