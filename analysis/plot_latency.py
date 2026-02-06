@@ -4,12 +4,20 @@ JMeter Results Analyzer - Latency vs Thread Count by Payload Size
 
 This script analyzes JMeter CSV results and generates a graph showing
 latency per thread count with different payload sizes represented by distinct markers.
+
+Usage:
+  python plot_latency.py <csv_file> [--percentiles]
+  
+Options:
+  --percentiles    Plot 50th, 75th, and 90th percentile lines instead of all points
 """
 
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 import numpy as np
 import sys
+import argparse
 from pathlib import Path
 from datetime import datetime
 
@@ -18,6 +26,12 @@ def log(message):
     """Print message with timestamp."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"[{timestamp}] {message}")
+
+
+def is_valid_thread_count(thread_count):
+    """Check if thread count is one of the valid values."""
+    valid_counts = [1, 2, 4, 8, 16, 32, 64, 128]
+    return thread_count in valid_counts
 
 
 def parse_jmeter_csv(filepath):
@@ -58,24 +72,29 @@ def parse_jmeter_csv(filepath):
     # Handle NaN values and convert to int
     df['payload_size'] = pd.to_numeric(df['sentBytes'], errors='coerce').fillna(0).astype(int)
     
-    # Create size categories with ranges
+    # Create size categories - match standard sizes
     def categorize_size(size):
-        if size == 0:
-            return '0B'
-        elif size < 256:
-            return '1-255B'
-        elif size < 512:
-            return '256-511B'
-        elif size < 1024:
-            return '512B-1KB'
-        elif size < 2048:
-            return '1-2KB'
-        elif size < 4096:
-            return '2-4KB'
-        elif size < 8192:
-            return '4-8KB'
-        else:
-            return '>8KB'
+        standards = [
+            (1024, "1KB"),
+            (4096, "4KB"),
+            (51200, "50KB"),
+            (204800, "200KB"),
+            (1048576, "1MB"),
+            (2097152, "2MB"),
+            (5242880, "5MB"),
+        ]
+        
+        # Find nearest standard size
+        min_diff = float('inf')
+        nearest = "1KB"
+        
+        for std_size, label in standards:
+            diff = abs(size - std_size)
+            if diff < min_diff:
+                min_diff = diff
+                nearest = label
+        
+        return nearest
     
     df['size_category'] = df['payload_size'].apply(categorize_size)
     
@@ -88,141 +107,142 @@ def parse_jmeter_csv(filepath):
     # Extract thread count from allThreads column (total active threads)
     df['thread_count'] = pd.to_numeric(df['allThreads'], errors='coerce').fillna(1).astype(int)
     
-    # Filter to only include valid thread counts from test matrix (1, 10, 100, 1000)
-    valid_thread_counts = [1, 10, 100, 1000]
-    df = df[df['thread_count'].isin(valid_thread_counts)]
-    
     # Remove rows with invalid data
     df = df.dropna(subset=['timeStamp', 'latency_ms', 'thread_count'])
+    
+    # Filter to only include valid thread counts (1, 2, 4, 8, 16, 32, 64, 128)
+    df = df[df['thread_count'].apply(is_valid_thread_count)]
     
     return df
 
 
-def calculate_statistics(df):
+def calculate_percentiles(df):
     """
-    Calculate TPS and average latency per thread count and payload size.
+    Calculate 50th, 75th, and 90th percentiles per thread count and payload size.
     """
-    # Group by thread count and payload size
     grouped = df.groupby(['thread_count', 'size_category'])
     
-    stats_list = []
+    percentile_list = []
     for (thread_count, size_cat), group in grouped:
-        # Calculate time span in seconds
-        time_span_ms = group['timeStamp'].max() - group['timeStamp'].min()
-        time_span_sec = time_span_ms / 1000.0
-        
-        # Calculate TPS (transactions per second)
-        if time_span_sec > 0:
-            tps = len(group) / time_span_sec
-        else:
-            tps = 0
-        
-        # Calculate latency statistics
-        stats_list.append({
+        percentile_list.append({
             'thread_count': thread_count,
             'size_category': size_cat,
-            'tps': tps,
-            'mean_latency': group['latency_ms'].mean(),
-            'median_latency': group['latency_ms'].median(),
-            'std_latency': group['latency_ms'].std(),
-            'min_latency': group['latency_ms'].min(),
-            'max_latency': group['latency_ms'].max(),
+            'p50': group['latency_ms'].quantile(0.50),
+            'p75': group['latency_ms'].quantile(0.75),
+            'p90': group['latency_ms'].quantile(0.90),
             'sample_count': len(group)
         })
     
-    stats = pd.DataFrame(stats_list)
-    return stats
+    return pd.DataFrame(percentile_list)
 
 
-def plot_latency_graph(stats, output_file='latency_analysis.png'):
+def plot_latency_graph(df, output_file='latency_analysis.png', use_percentiles=False):
     """
-    Create a graph showing latency vs thread count with different markers for payload sizes.
+    Create a graph showing latency vs thread count.
+    
+    Args:
+        df: DataFrame with raw data
+        output_file: Output filename
+        use_percentiles: If True, plot percentile lines; if False, plot all points
     """
     plt.figure(figsize=(14, 8))
     
-    # Define markers and colors for different payload sizes
-    markers = ['o', 's', '^', 'D', 'v', 'p', '*', 'h', 'X', 'P', '<', '>', '1', '2', '3', '4']
+    # Get unique size categories and sort them logically
+    size_order = ["1KB", "4KB", "50KB", "200KB", "1MB", "2MB", "5MB"]
+    size_categories = [s for s in size_order if s in df['size_category'].unique()]
     
-    # Get number of unique size categories
-    num_categories = len(stats['size_category'].unique())
-    
-    # Use appropriate colormap based on number of categories
+    # Use appropriate colormap
+    num_categories = len(size_categories)
     if num_categories <= 10:
         colors = plt.cm.tab10(np.linspace(0, 1, 10))
-    elif num_categories <= 20:
-        colors = plt.cm.tab20(np.linspace(0, 1, 20))
     else:
         colors = plt.cm.hsv(np.linspace(0, 1, num_categories))
     
-    # Get unique size categories and sort them logically
-    size_order = ["1KB", "4KB", "50KB", "200KB", "1MB", "2MB", "5MB"]
-    size_categories = [s for s in size_order if s in stats['size_category'].unique()]
+    if use_percentiles:
+        # Calculate percentiles
+        log("Calculating percentiles...")
+        percentiles_df = calculate_percentiles(df)
+        
+        # Plot percentile lines for each payload size
+        for idx, size_cat in enumerate(size_categories):
+            data = percentiles_df[percentiles_df['size_category'] == size_cat].sort_values('thread_count')
+            
+            color = colors[idx]
+            
+            # Plot 50th percentile (solid line)
+            plt.plot(data['thread_count'], data['p50'],
+                    linewidth=2,
+                    color=color,
+                    label=f'{size_cat}',
+                    linestyle='-',
+                    marker='o',
+                    markersize=6)
+            
+            # Plot 75th percentile (dashed line, same color)
+            plt.plot(data['thread_count'], data['p75'],
+                    linewidth=1.5,
+                    color=color,
+                    linestyle='--',
+                    alpha=0.7)
+            
+            # Plot 90th percentile (dotted line, same color)
+            plt.plot(data['thread_count'], data['p90'],
+                    linewidth=1.5,
+                    color=color,
+                    linestyle=':',
+                    alpha=0.7)
+        
+        # Add custom legend entries for percentiles
+        from matplotlib.lines import Line2D
+        legend_elements = [
+            Line2D([0], [0], color='gray', linewidth=2, linestyle='-', label='50th percentile'),
+            Line2D([0], [0], color='gray', linewidth=1.5, linestyle='--', label='75th percentile'),
+            Line2D([0], [0], color='gray', linewidth=1.5, linestyle=':', label='90th percentile')
+        ]
+        
+        # Get existing legend
+        handles, labels = plt.gca().get_legend_handles_labels()
+        
+        # Combine legends
+        plt.legend(handles + legend_elements, labels + [e.get_label() for e in legend_elements],
+                  title='Payload Size', loc='best', fontsize=9, title_fontsize=10, ncol=2)
+        
+        plt.title('Latency Percentiles vs Thread Count by Payload Size\n(50th, 75th, and 90th percentiles)',
+                  fontsize=14, fontweight='bold', pad=20)
+        log(f"✓ Plotted percentiles for {len(percentiles_df)} thread count/payload combinations")
+    else:
+        # Plot all individual points as scatter plot
+        markers = ['o', 's', '^', 'D', 'v', 'p', '*', 'h']
+        
+        for idx, size_cat in enumerate(size_categories):
+            data = df[df['size_category'] == size_cat]
+            
+            plt.scatter(data['thread_count'], data['latency_ms'],
+                       marker=markers[idx % len(markers)],
+                       s=20,
+                       color=colors[idx],
+                       label=f'{size_cat}',
+                       alpha=0.6)
+        
+        plt.legend(title='Payload Size', loc='best', fontsize=10, title_fontsize=11)
+        plt.title('Latency vs Thread Count by Payload Size\n(All individual data points)',
+                  fontsize=14, fontweight='bold', pad=20)
+        log(f"✓ Plotted {len(df)} individual data points")
     
-    # Plot each payload size category
-    for idx, size_cat in enumerate(size_categories):
-        data = stats[stats['size_category'] == size_cat].sort_values('tps')
-        
-        plt.plot(data['tps'], data['mean_latency'],
-                marker=markers[idx % len(markers)],
-                markersize=8,
-                linewidth=2,
-                color=colors[idx],
-                label=f'{size_cat}',
-                alpha=0.8)
-        
-        # Add error bars for standard deviation (only if valid)
-        # Replace NaN/inf with 0 for error bars
-        std_values = data['std_latency'].fillna(0).replace([np.inf, -np.inf], 0)
-        if std_values.sum() > 0:  # Only add error bars if there's valid std data
-            plt.errorbar(data['tps'], data['mean_latency'],
-                        yerr=std_values,
-                        fmt='none',
-                        ecolor=colors[idx],
-                        alpha=0.3,
-                        capsize=3)
-        
-        # Add thread count labels next to each point
-        for _, row in data.iterrows():
-            plt.annotate(f"{int(row['thread_count'])}",
-                        xy=(row['tps'], row['mean_latency']),
-                        xytext=(5, 5),
-                        textcoords='offset points',
-                        fontsize=8,
-                        color=colors[idx],
-                        alpha=0.7)
-    
-    plt.xlabel('Throughput (TPS - Transactions Per Second)', fontsize=12, fontweight='bold')
-    plt.ylabel('Average Latency (ms)', fontsize=12, fontweight='bold')
-    plt.title('Latency vs Throughput (TPS) by Payload Size\n(Error bars show standard deviation)',
-              fontsize=14, fontweight='bold', pad=20)
-    plt.legend(title='Payload Size', loc='best', fontsize=10, title_fontsize=11)
+    plt.xlabel('Thread Count (allThreads)', fontsize=12, fontweight='bold')
+    plt.ylabel('Latency (ms)', fontsize=12, fontweight='bold')
     plt.grid(True, alpha=0.3, linestyle='--', which='both')
     
     # Get axis handle for customization
     ax = plt.gca()
     
-    # Use logarithmic scale on X-axis only if max TPS > 100000
-    max_tps = stats['tps'].max()
-    if max_tps > 100000:
-        plt.xscale('log')
-        log(f"Using logarithmic X-axis (max TPS: {max_tps:.0f})")
-    else:
-        # Use plain formatting for regular scale with sensible intervals
-        ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{int(x):,}'))
-        # Set sensible tick intervals based on data range
-        from matplotlib.ticker import MaxNLocator
-        ax.xaxis.set_major_locator(MaxNLocator(nbins=10, integer=True))
-        log(f"Using linear X-axis (max TPS: {max_tps:.0f})")
+    # Use linear scale for both axes
+    ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda x, p: f'{int(x):,}'))
+    ax.xaxis.set_major_locator(MaxNLocator(nbins=10, integer=True))
     
-    # Set sensible Y-axis intervals
-    from matplotlib.ticker import MaxNLocator
-    ax.yaxis.set_major_locator(MaxNLocator(nbins=10))
-    
-    # Check if Y-axis (latency) needs log scale
-    latency_range = stats['mean_latency'].max() / stats['mean_latency'].min() if stats['mean_latency'].min() > 0 else 1
-    if latency_range > 100:
-        plt.yscale('log')
-        log(f"Using logarithmic Y-axis (latency range: {latency_range:.1f}x)")
+    max_threads = df['thread_count'].max()
+    min_threads = df['thread_count'].min()
+    log(f"Using linear axes (thread range: {min_threads}-{max_threads})")
     
     # Format axes
     plt.tight_layout()
@@ -230,47 +250,49 @@ def plot_latency_graph(stats, output_file='latency_analysis.png'):
     # Save the figure
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
     log(f"✓ Graph saved to: {output_file}")
-    
-    # Also display summary statistics
-    log("\n" + "="*70)
-    log("SUMMARY STATISTICS")
-    log("="*70)
-    print(stats.to_string(index=False))
-    log("="*70)
 
 
 def main():
     """Main execution function."""
     
-    # Check command line arguments
-    if len(sys.argv) < 2:
-        log("Usage: python plot_latency.py <path_to_csv_file>")
-        log("\nExample: python plot_latency.py ../tmp/data2.csv")
-        sys.exit(1)
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description='JMeter Results Analyzer - Plot latency vs thread count',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog='''
+Examples:
+  python plot_latency.py data.csv                  # Plot all individual points
+  python plot_latency.py data.csv --percentiles    # Plot percentile lines
+        '''
+    )
+    parser.add_argument('csv_file', help='Path to JMeter CSV results file')
+    parser.add_argument('--percentiles', action='store_true',
+                       help='Plot 50th, 75th, and 90th percentile lines instead of all points')
     
-    csv_file = sys.argv[1]
+    args = parser.parse_args()
     
     # Validate file exists
-    if not Path(csv_file).exists():
-        log(f"Error: File not found: {csv_file}")
+    if not Path(args.csv_file).exists():
+        log(f"Error: File not found: {args.csv_file}")
         sys.exit(1)
     
-    log(f"Reading JMeter results from: {csv_file}")
+    log(f"Reading JMeter results from: {args.csv_file}")
     
     # Parse CSV
-    df = parse_jmeter_csv(csv_file)
+    df = parse_jmeter_csv(args.csv_file)
     log(f"✓ Loaded {len(df)} samples")
     
-    # Calculate statistics
-    log("Calculating statistics...")
-    stats = calculate_statistics(df)
-    
     # Generate output filename
-    output_file = Path(csv_file).stem + '_latency_graph.png'
+    suffix = '_percentiles' if args.percentiles else '_scatter'
+    output_file = Path(args.csv_file).stem + suffix + '_latency_graph.png'
     
     # Create plot
-    log("Generating graph...")
-    plot_latency_graph(stats, output_file)
+    if args.percentiles:
+        log("Generating percentile line plot...")
+    else:
+        log("Generating scatter plot...")
+    
+    plot_latency_graph(df, output_file, use_percentiles=args.percentiles)
     
     log(f"\n✓ Analysis complete!")
 

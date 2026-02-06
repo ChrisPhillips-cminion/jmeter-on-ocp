@@ -143,7 +143,7 @@ metadata:
   labels:
     app: jmeter-tests
 spec:
-  replicas: 1
+  replicas: 4
   selector:
     app: jmeter-tests
   template:
@@ -176,11 +176,11 @@ spec:
           value: "/opt/apache-jmeter"
         resources:
           requests:
-            memory: "2Gi"
-            cpu: "1000m"
-          limits:
-            memory: "4Gi"
+            memory: "8Gi"
             cpu: "2000m"
+          limits:
+            memory: "16Gi"
+            cpu: "4000m"
         volumeMounts:
         - name: results
           mountPath: /jmeter/results

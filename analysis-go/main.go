@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/csv"
+	"flag"
 	"fmt"
 	"image/color"
 	"io"
@@ -27,17 +28,14 @@ type DataPoint struct {
 	PayloadSize int
 }
 
-// Statistics holds aggregated metrics
-type Statistics struct {
-	ThreadCount   int
-	SizeCategory  string
-	TPS           float64
-	MeanLatency   float64
-	MedianLatency float64
-	StdLatency    float64
-	MinLatency    float64
-	MaxLatency    float64
-	SampleCount   int
+// PercentileData holds percentile metrics per thread count and size
+type PercentileData struct {
+	ThreadCount  int
+	SizeCategory string
+	P50          float64
+	P75          float64
+	P90          float64
+	SampleCount  int
 }
 
 func logWithTimestamp(message string) {
@@ -78,6 +76,16 @@ func categorizeSize(size int) string {
 	return nearest
 }
 
+func isValidThreadCount(threadCount int) bool {
+	validCounts := []int{1, 2, 4, 8, 16, 32, 64, 128}
+	for _, valid := range validCounts {
+		if threadCount == valid {
+			return true
+		}
+	}
+	return false
+}
+
 func parseCSV(filename string) ([]DataPoint, error) {
 	logWithTimestamp(fmt.Sprintf("Reading JMeter results from: %s", filename))
 
@@ -91,7 +99,6 @@ func parseCSV(filename string) ([]DataPoint, error) {
 	reader.FieldsPerRecord = -1 // Allow variable number of fields
 
 	var dataPoints []DataPoint
-	validThreadCounts := map[int]bool{1: true, 10: true, 100: true, 1000: true}
 
 	for {
 		record, err := reader.Read()
@@ -116,8 +123,8 @@ func parseCSV(filename string) ([]DataPoint, error) {
 			continue
 		}
 
-		// Filter to valid thread counts
-		if !validThreadCounts[allThreads] {
+		// Filter to only accept specific thread counts
+		if !isValidThreadCount(allThreads) {
 			continue
 		}
 
@@ -134,8 +141,8 @@ func parseCSV(filename string) ([]DataPoint, error) {
 	return dataPoints, nil
 }
 
-func calculateStatistics(dataPoints []DataPoint) []Statistics {
-	logWithTimestamp("Calculating statistics...")
+func calculatePercentiles(dataPoints []DataPoint) []PercentileData {
+	logWithTimestamp("Calculating percentiles...")
 
 	// Group by thread count and size category
 	type groupKey struct {
@@ -143,90 +150,49 @@ func calculateStatistics(dataPoints []DataPoint) []Statistics {
 		sizeCategory string
 	}
 
-	groups := make(map[groupKey][]DataPoint)
+	groups := make(map[groupKey][]float64)
 	for _, dp := range dataPoints {
 		key := groupKey{
 			threadCount:  dp.AllThreads,
 			sizeCategory: categorizeSize(dp.PayloadSize),
 		}
-		groups[key] = append(groups[key], dp)
+		groups[key] = append(groups[key], dp.Elapsed)
 	}
 
-	var stats []Statistics
-	for key, group := range groups {
-		if len(group) == 0 {
+	var percentiles []PercentileData
+	for key, latencies := range groups {
+		if len(latencies) == 0 {
 			continue
 		}
 
-		// Calculate time span
-		var minTime, maxTime int64 = math.MaxInt64, 0
-		var latencies []float64
-		var sumLatency float64
-
-		for _, dp := range group {
-			if dp.TimeStamp < minTime {
-				minTime = dp.TimeStamp
-			}
-			if dp.TimeStamp > maxTime {
-				maxTime = dp.TimeStamp
-			}
-			latencies = append(latencies, dp.Elapsed)
-			sumLatency += dp.Elapsed
-		}
-
-		timeSpanSec := float64(maxTime-minTime) / 1000.0
-		tps := 0.0
-		if timeSpanSec > 0 {
-			tps = float64(len(group)) / timeSpanSec
-		}
-
-		// Calculate statistics
-		meanLatency := sumLatency / float64(len(group))
-
-		// Median
+		// Sort latencies
 		sort.Float64s(latencies)
-		medianLatency := latencies[len(latencies)/2]
 
-		// Standard deviation
-		var variance float64
-		for _, lat := range latencies {
-			diff := lat - meanLatency
-			variance += diff * diff
-		}
-		stdLatency := math.Sqrt(variance / float64(len(group)))
+		// Calculate percentiles
+		p50 := latencies[int(float64(len(latencies))*0.50)]
+		p75 := latencies[int(float64(len(latencies))*0.75)]
+		p90 := latencies[int(float64(len(latencies))*0.90)]
 
-		stats = append(stats, Statistics{
-			ThreadCount:   key.threadCount,
-			SizeCategory:  key.sizeCategory,
-			TPS:           tps,
-			MeanLatency:   meanLatency,
-			MedianLatency: medianLatency,
-			StdLatency:    stdLatency,
-			MinLatency:    latencies[0],
-			MaxLatency:    latencies[len(latencies)-1],
-			SampleCount:   len(group),
+		percentiles = append(percentiles, PercentileData{
+			ThreadCount:  key.threadCount,
+			SizeCategory: key.sizeCategory,
+			P50:          p50,
+			P75:          p75,
+			P90:          p90,
+			SampleCount:  len(latencies),
 		})
 	}
 
-	return stats
+	return percentiles
 }
 
-func plotGraph(stats []Statistics, outputFile string) error {
-	logWithTimestamp("Generating graph...")
+func plotGraph(dataPoints []DataPoint, outputFile string, usePercentiles bool) error {
 
 	p := plot.New()
-	p.Title.Text = "Latency vs Throughput (TPS) by Payload Size"
-	p.X.Label.Text = "Throughput (TPS - Transactions Per Second)"
-	p.Y.Label.Text = "Average Latency (ms)"
+	p.X.Label.Text = "Thread Count (allThreads)"
+	p.Y.Label.Text = "Latency (ms)"
 
-	// Group by size category
-	sizeOrder := []string{"1KB", "4KB", "50KB", "200KB", "1MB", "2MB", "5MB"}
-	sizeGroups := make(map[string][]Statistics)
-	for _, stat := range stats {
-		sizeGroups[stat.SizeCategory] = append(sizeGroups[stat.SizeCategory], stat)
-	}
-
-	// Plot each size category
+	// Define colors
 	colors := []color.RGBA{
 		{R: 31, G: 119, B: 180, A: 255},
 		{R: 255, G: 127, B: 14, A: 255},
@@ -238,102 +204,143 @@ func plotGraph(stats []Statistics, outputFile string) error {
 		{R: 127, G: 127, B: 127, A: 255},
 	}
 
-	colorIdx := 0
-	for _, sizeCategory := range sizeOrder {
-		group, exists := sizeGroups[sizeCategory]
-		if !exists {
-			continue
+	sizeOrder := []string{"1KB", "4KB", "50KB", "200KB", "1MB", "2MB", "5MB"}
+
+	if usePercentiles {
+		// Calculate percentiles
+		percentiles := calculatePercentiles(dataPoints)
+
+		// Group percentiles by size category
+		percentileGroups := make(map[string][]PercentileData)
+		for _, pd := range percentiles {
+			percentileGroups[pd.SizeCategory] = append(percentileGroups[pd.SizeCategory], pd)
 		}
 
-		// Sort by TPS
-		sort.Slice(group, func(i, j int) bool {
-			return group[i].TPS < group[j].TPS
-		})
-
-		// Create points and error bars
-		pts := make(plotter.XYs, len(group))
-		errs := make(plotter.YErrors, len(group))
-		for i, stat := range group {
-			pts[i].X = stat.TPS
-			pts[i].Y = stat.MeanLatency
-			// Use standard deviation for error bars
-			errs[i].Low = stat.StdLatency
-			errs[i].High = stat.StdLatency
-		}
-
-		line, points, err := plotter.NewLinePoints(pts)
-		if err != nil {
-			return err
-		}
-
-		line.Color = colors[colorIdx%len(colors)]
-		points.Color = colors[colorIdx%len(colors)]
-		points.Shape = draw.CircleGlyph{}
-
-		// Add error bars for standard deviation
-		errBars, err := plotter.NewYErrorBars(struct {
-			plotter.XYer
-			plotter.YErrorer
-		}{pts, errs})
-		if err == nil {
-			errBars.Color = colors[colorIdx%len(colors)]
-			errBars.LineStyle.Width = vg.Points(0.5)
-			p.Add(errBars)
-		}
-
-		p.Add(line, points)
-		p.Legend.Add(sizeCategory, line, points)
-
-		// Add thread count labels next to each point
-		for _, stat := range group {
-			label, err := plotter.NewLabels(plotter.XYLabels{
-				XYs:    []plotter.XY{{X: stat.TPS, Y: stat.MeanLatency}},
-				Labels: []string{fmt.Sprintf("%d", stat.ThreadCount)},
+		// Sort each group by thread count
+		for _, group := range percentileGroups {
+			sort.Slice(group, func(i, j int) bool {
+				return group[i].ThreadCount < group[j].ThreadCount
 			})
-			if err == nil {
-				for i := range label.TextStyle {
-					label.TextStyle[i].Color = colors[colorIdx%len(colors)]
-					label.TextStyle[i].Font.Size = vg.Points(8)
-				}
-				p.Add(label)
+		}
+
+		p.Title.Text = "Latency Percentiles vs Thread Count by Payload Size\n(50th, 75th, and 90th percentiles)"
+
+		// Plot percentile lines for each size category
+		colorIdx := 0
+		for _, sizeCategory := range sizeOrder {
+			group, exists := percentileGroups[sizeCategory]
+			if !exists || len(group) == 0 {
+				continue
 			}
+
+			color := colors[colorIdx%len(colors)]
+
+			// Create points for each percentile
+			p50pts := make(plotter.XYs, len(group))
+			p75pts := make(plotter.XYs, len(group))
+			p90pts := make(plotter.XYs, len(group))
+
+			for i, pd := range group {
+				p50pts[i].X = float64(pd.ThreadCount)
+				p50pts[i].Y = pd.P50
+				p75pts[i].X = float64(pd.ThreadCount)
+				p75pts[i].Y = pd.P75
+				p90pts[i].X = float64(pd.ThreadCount)
+				p90pts[i].Y = pd.P90
+			}
+
+			// Plot 50th percentile (solid line)
+			line50, err := plotter.NewLine(p50pts)
+			if err != nil {
+				return err
+			}
+			line50.Color = color
+			line50.Width = vg.Points(2)
+			p.Add(line50)
+			p.Legend.Add(sizeCategory, line50)
+
+			// Plot 75th percentile (dashed line)
+			line75, err := plotter.NewLine(p75pts)
+			if err != nil {
+				return err
+			}
+			line75.Color = color
+			line75.Width = vg.Points(1.5)
+			line75.Dashes = []vg.Length{vg.Points(5), vg.Points(2)}
+			p.Add(line75)
+
+			// Plot 90th percentile (dotted line)
+			line90, err := plotter.NewLine(p90pts)
+			if err != nil {
+				return err
+			}
+			line90.Color = color
+			line90.Width = vg.Points(1.5)
+			line90.Dashes = []vg.Length{vg.Points(2), vg.Points(2)}
+			p.Add(line90)
+
+			colorIdx++
 		}
 
-		colorIdx++
-	}
-
-	// Use logarithmic scale on X-axis only if max TPS > 100000
-	var maxTPS float64 = 0
-	for _, stat := range stats {
-		if stat.TPS > maxTPS {
-			maxTPS = stat.TPS
-		}
-	}
-
-	if maxTPS > 100000 {
-		p.X.Scale = plot.LogScale{}
-		p.X.Tick.Marker = plot.LogTicks{}
-		logWithTimestamp(fmt.Sprintf("Using logarithmic X-axis (max TPS: %.0f)", maxTPS))
+		logWithTimestamp(fmt.Sprintf("✓ Plotted percentiles for %d thread count/payload combinations", len(percentiles)))
 	} else {
-		logWithTimestamp(fmt.Sprintf("Using linear X-axis (max TPS: %.0f)", maxTPS))
+		// Plot scatter points
+		p.Title.Text = "Latency vs Thread Count by Payload Size\n(All individual data points)"
+
+		// Group by size category
+		sizeGroups := make(map[string][]DataPoint)
+		for _, dp := range dataPoints {
+			sizeCategory := categorizeSize(dp.PayloadSize)
+			sizeGroups[sizeCategory] = append(sizeGroups[sizeCategory], dp)
+		}
+
+		colorIdx := 0
+		for _, sizeCategory := range sizeOrder {
+			group, exists := sizeGroups[sizeCategory]
+			if !exists {
+				continue
+			}
+
+			// Create scatter points
+			pts := make(plotter.XYs, len(group))
+			for i, dp := range group {
+				pts[i].X = float64(dp.AllThreads)
+				pts[i].Y = dp.Elapsed
+			}
+
+			scatter, err := plotter.NewScatter(pts)
+			if err != nil {
+				return err
+			}
+
+			scatter.Color = colors[colorIdx%len(colors)]
+			scatter.Shape = draw.CircleGlyph{}
+			scatter.Radius = vg.Points(2)
+
+			p.Add(scatter)
+			p.Legend.Add(sizeCategory, scatter)
+
+			colorIdx++
+		}
+
+		logWithTimestamp(fmt.Sprintf("✓ Plotted %d individual data points", len(dataPoints)))
 	}
 
-	// Check if Y-axis (latency) needs log scale
-	var minLat, maxLat float64 = math.MaxFloat64, 0
-	for _, stat := range stats {
-		if stat.MeanLatency > 0 && stat.MeanLatency < minLat {
-			minLat = stat.MeanLatency
+	// Use linear scale for both axes
+	var minThreads, maxThreads int = math.MaxInt32, 0
+	for _, dp := range dataPoints {
+		if dp.AllThreads < minThreads {
+			minThreads = dp.AllThreads
 		}
-		if stat.MeanLatency > maxLat {
-			maxLat = stat.MeanLatency
+		if dp.AllThreads > maxThreads {
+			maxThreads = dp.AllThreads
 		}
 	}
+	logWithTimestamp(fmt.Sprintf("Using linear axes (thread range: %d-%d)", minThreads, maxThreads))
 
-	if minLat > 0 && maxLat/minLat > 100 {
-		p.Y.Scale = plot.LogScale{}
-		p.Y.Tick.Marker = plot.LogTicks{}
-		logWithTimestamp(fmt.Sprintf("Using logarithmic Y-axis (latency range: %.1fx)", maxLat/minLat))
-	}
+	// Position legend at top left
+	p.Legend.Top = true
+	p.Legend.Left = true
 
 	// Save plot
 	if err := p.Save(10*vg.Inch, 6*vg.Inch, outputFile); err != nil {
@@ -344,32 +351,25 @@ func plotGraph(stats []Statistics, outputFile string) error {
 	return nil
 }
 
-func printStatistics(stats []Statistics) {
-	logWithTimestamp("\n" + "======================================================================")
-	logWithTimestamp("SUMMARY STATISTICS")
-	logWithTimestamp("======================================================================")
-
-	fmt.Printf("%-12s %-15s %-10s %-12s %-12s %-10s\n",
-		"ThreadCount", "SizeCategory", "TPS", "MeanLatency", "StdLatency", "Samples")
-	fmt.Println("----------------------------------------------------------------------")
-
-	for _, stat := range stats {
-		fmt.Printf("%-12d %-15s %-10.2f %-12.2f %-12.2f %-10d\n",
-			stat.ThreadCount, stat.SizeCategory, stat.TPS,
-			stat.MeanLatency, stat.StdLatency, stat.SampleCount)
-	}
-
-	logWithTimestamp("======================================================================")
-}
-
 func main() {
-	if len(os.Args) < 2 {
-		logWithTimestamp("Usage: go run main.go <path_to_csv_file>")
-		logWithTimestamp("\nExample: go run main.go ../tmp/data2.csv")
+	// Define flags
+	percentiles := flag.Bool("percentiles", false, "Plot 50th, 75th, and 90th percentile lines instead of all points")
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: %s [options] <csv_file>\n\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Options:\n")
+		flag.PrintDefaults()
+		fmt.Fprintf(os.Stderr, "\nExamples:\n")
+		fmt.Fprintf(os.Stderr, "  %s data.csv                  # Plot all individual points\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "  %s -percentiles data.csv     # Plot percentile lines\n", os.Args[0])
+	}
+	flag.Parse()
+
+	if flag.NArg() < 1 {
+		flag.Usage()
 		os.Exit(1)
 	}
 
-	csvFile := os.Args[1]
+	csvFile := flag.Arg(0)
 
 	// Check if file exists
 	if _, err := os.Stat(csvFile); os.IsNotExist(err) {
@@ -383,19 +383,19 @@ func main() {
 		log.Fatalf("Error parsing CSV: %v", err)
 	}
 
-	// Calculate statistics
-	stats := calculateStatistics(dataPoints)
-
 	// Generate output filename
-	outputFile := "latency_graph.png"
+	suffix := ""
+	if *percentiles {
+		suffix = "_percentiles"
+	} else {
+		suffix = "_scatter"
+	}
+	outputFile := "latency" + suffix + "_graph.png"
 
 	// Create plot
-	if err := plotGraph(stats, outputFile); err != nil {
+	if err := plotGraph(dataPoints, outputFile, *percentiles); err != nil {
 		log.Fatalf("Error creating plot: %v", err)
 	}
-
-	// Print statistics
-	printStatistics(stats)
 
 	logWithTimestamp("\n✓ Analysis complete!")
 }
